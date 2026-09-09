@@ -4,20 +4,27 @@ import java.awt.*;
 
 public class Magnet {
     public int x, y;
-    public int width = 16;
-    public int height = 16;
+    public int width = 25;
+    public int height = 25;
 
+    // Construtor que recebe as posições onde o ímã vai nascer
     public Magnet(int x, int y) {
         this.x = x;
         this.y = y;
     }
-    public void draw(Graphics g) {
-        // Desenha um ítem roxo/magenta representando o Ímã
-        g.setColor(Color.MAGENTA);
-        g.fillRect(x, y, width, height);
 
-        // Um detalhezinho visual no meio para parecer um ítem especial
-        g.setColor(Color.WHITE);
-        g.fillRect(x + 4, y + 4, width - 8, height - 8);
+    public void draw(Graphics g, int cameraX, int cameraY) {
+        // Converte a posição do mundo para a tela usando a câmera
+        int screenX = this.x - cameraX;
+        int screenY = this.y - cameraY;
+
+        Graphics2D g2d = (Graphics2D) g;
+
+        // Desenho visual do Ímã
+        g2d.setColor(Color.CYAN);
+        g2d.fillRect(screenX, screenY, width, height);
+
+        g2d.setColor(Color.WHITE);
+        g2d.drawRect(screenX, screenY, width, height);
     }
 }

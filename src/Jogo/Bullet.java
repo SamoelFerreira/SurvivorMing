@@ -29,8 +29,11 @@ public class Bullet {
         y += velocityY;
     }
 
-    public void draw(Graphics g) {
-        g.setColor(Color.YELLOW); // Tiros amarelos
-        g.fillOval((int) x, (int) y, width, height);
+    public void draw(Graphics g, int cameraX, int cameraY) {
+        int screenX = (int) this.x - cameraX;
+        int screenY = (int) this.y - cameraY;
+
+        g.setColor(Color.YELLOW);
+        g.fillOval(screenX, screenY, width, height);
     }
 }

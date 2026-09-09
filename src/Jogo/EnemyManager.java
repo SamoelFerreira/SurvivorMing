@@ -9,46 +9,45 @@ public class EnemyManager {
     private int difficultyTimer = 0;
     private Random random = new Random();
 
-    public void update(List<Enemy> enemies) {
+    public void update(List<Enemy> enemies, double playerX, double playerY) {
         spawnTimer++;
         difficultyTimer++;
 
-        // A cada ~10 segundos (600 frames a 60 FPS), o jogo fica mais difícil!
         if (difficultyTimer >= 600) {
             difficultyTimer = 0;
-            if (spawnInterval > 25) { // Limite mínimo para não travar o jogo
-                spawnInterval -= 10; // Nascimento fica mais rápido
+            if (spawnInterval > 25) {
+                spawnInterval -= 10;
             }
         }
 
-        // Hora de nascer um novo inimigo
         if (spawnTimer >= spawnInterval) {
             spawnTimer = 0;
-            spawnEnemy(enemies);
+            spawnEnemy(enemies, playerX, playerY); // Passa a posição do player aqui
         }
     }
 
-    private void spawnEnemy(List<Enemy> enemies) {
+    private void spawnEnemy(List<Enemy> enemies, double playerX, double playerY) {
         double x = 0;
         double y = 0;
         int edge = random.nextInt(4);
 
+        // Margem maior para garantir que nasçam bem fora da tela de 1600x900
         switch (edge) {
-            case 0: // Topo
-                x = random.nextInt(800);
-                y = -30;
+            case 0: // Topo (acima da visão)
+                x = playerX - 900 + random.nextInt(1800);
+                y = playerY - 600;
                 break;
-            case 1: // Embaixo
-                x = random.nextInt(800);
-                y = 630;
+            case 1: // Embaixo (abaixo da visão)
+                x = playerX - 900 + random.nextInt(1800);
+                y = playerY + 600;
                 break;
-            case 2: // Esquerda
-                x = -30;
-                y = random.nextInt(600);
+            case 2: // Esquerda (à esquerda da visão)
+                x = playerX - 900;
+                y = playerY - 600 + random.nextInt(1200);
                 break;
-            case 3: // Direita
-                x = 830;
-                y = random.nextInt(600);
+            case 3: // Direita (à direita da visão)
+                x = playerX + 900;
+                y = playerY - 600 + random.nextInt(1200);
                 break;
         }
 

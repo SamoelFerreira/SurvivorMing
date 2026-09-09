@@ -1,13 +1,11 @@
 package Jogo;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 
 public class Player {
     public int x, y;
-    public int width = 40;
-    public int height = 40;
-
-    //Status e Atributos
+    public int width = 48, height = 48;
     public int speed = 5;
     public int maxHp = 100;
     public int hp = 100;
@@ -15,57 +13,121 @@ public class Player {
     // Sistema de XP
     public int level = 1;
     public int currentXp = 0;
-    public int nextLevelXp = 1; // XP necessario para o proximo nivel
+    public int nextLevelXp = 100;
+
+    // Animações e Estados
+    private BufferedImage[] idleFrames;
+    private BufferedImage[] runFrames;
+    private BufferedImage[] shootFrames;
+
+    private int animFrame = 0;
+    private int animTimer = 0;
+    private int frameDelay = 8; // Velocidade da animação
+
+    private boolean isMoving = false;
+    private boolean isAttacking = false;
+    private int attackTimer = 0;
+    private final int attackDuration = 20; // Quantos frames a animação de tiro dura
 
     public Player(int startX, int startY) {
         this.x = startX;
         this.y = startY;
+        carregarSprites();
+    }
+
+    private void carregarSprites() {
+        SpriteSheet idleLoader = new SpriteSheet("/sprites/archeridle.png");
+        idleFrames = idleLoader.cortarFrames(6);
+
+        SpriteSheet runLoader = new SpriteSheet("/sprites/archerrun.png");
+        runFrames = runLoader.cortarFrames(4);
+
+        SpriteSheet shootLoader = new SpriteSheet("/sprites/archershoot.png");
+        shootFrames = shootLoader.cortarFrames(8);
+    }
+
+    public void triggerAttack() {
+        isAttacking = true;
+        attackTimer = 0;
     }
 
     public void update(boolean up, boolean down, boolean left, boolean right) {
-        if (up) y -= speed;
-        if (down) y += speed;
-        if (left) x -= speed;
-        if (right) x += speed;
+        isMoving = false;
 
-        // Limites da tela (800x600)
-        if (x < 0) x = 0;
-        if (x > 800 - width) x = 800 - width;
-        if (y < 0) y = 0;
-        if (y > 600 - height) y = 600 - height;
+        if (up) { y -= speed; isMoving = true; }
+        if (down) { y += speed; isMoving = true; }
+        if (left) { x -= speed; isMoving = true; }
+        if (right) { x += speed; isMoving = true; }
+
+        // Controla o tempo da animação de tiro
+        if (isAttacking) {
+            attackTimer++;
+            if (attackTimer >= attackDuration) {
+                isAttacking = false;
+            }
+        }
+
+        // Atualiza os quadros da animação
+        animTimer++;
+        if (animTimer >= frameDelay) {
+            animTimer = 0;
+            animFrame++;
+        }
     }
 
     public void dash(boolean up, boolean down, boolean left, boolean right) {
         int dashDistance = 80;
-
         if (up) y -= dashDistance;
         if (down) y += dashDistance;
         if (left) x -= dashDistance;
         if (right) x += dashDistance;
 
         if (!up && !down && !left && !right) {
-            y -= dashDistance; // Dash para cima se estiver parado
+            y -= dashDistance;
         }
-
-        if (x < 0) x = 0;
-        if (x > 800 - width) x = 800 - width;
-        if (y < 0) y = 0;
-        if (y > 600 - height) y = 600 - height;
     }
 
     public boolean gainXp(int amount) {
         currentXp += amount;
         if (currentXp >= nextLevelXp) {
-            currentXp -= nextLevelXp; // Desconta o XP do nível atual, mantendo o "resto" para o próximo
+            currentXp -= nextLevelXp;
             level++;
-            nextLevelXp += 1; // Ou a sua lógica de aumento de XP necessário
-            return true; // Retorna true indicando que subiu de nível
+            nextLevelXp += 50;
+            return true;
         }
         return false;
     }
 
-    public void draw(Graphics g) {
-        g.setColor(Color.BLUE);
-        g.fillRect(x, y, width, height);
+    public void draw(Graphics g, int cameraX, int cameraY) {
+        int screenX = this.x - cameraX;
+        int screenY = this.y - cameraY;
+
+        // Sombra oval nos pés
+        g.setColor(new Color(0, 0, 0, 100));
+        g.fillOval(screenX + 6, screenY + height - 8, width - 12, 8);
+
+        // Define qual array de imagens usar baseado no estado atual
+        BufferedImage[] currentFrames = idleFrames;
+
+        if (isAttacking && shootFrames != null && shootFrames.length > 0) {
+            currentFrames = shootFrames;
+        } else if (isMoving && runFrames != null && runFrames.length > 0) {
+            currentFrames = runFrames;
+        }
+
+        // Evita erro caso o array esteja vazio
+        if (currentFrames == null || currentFrames.length == 0) {
+            currentFrames = idleFrames;
+        }
+
+        int frameIndex = animFrame % currentFrames.length;
+
+        // Desenha o frame atual na tela
+        if (currentFrames != null && currentFrames[frameIndex] != null) {
+            g.drawImage(currentFrames[frameIndex], screenX, screenY, width, height, null);
+        } else {
+            g.setColor(Color.BLUE);
+            g.fillRect(screenX, screenY, width, height);
+        }
     }
 }

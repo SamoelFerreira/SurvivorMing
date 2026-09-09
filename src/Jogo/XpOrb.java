@@ -13,8 +13,11 @@ public class XpOrb {
         this.y = y;
     }
 
-    public void draw(Graphics g) {
-        g.setColor(Color.GREEN);
-        g.fillOval(x, y, width, height);
+    public void draw(Graphics g, int cameraX, int cameraY) {
+        int screenX = this.x - cameraX;
+        int screenY = this.y - cameraY;
+
+        g.setColor(Color.MAGENTA); // ou a cor que você usa para o XP
+        g.fillOval(screenX, screenY, width, height);
     }
 }
