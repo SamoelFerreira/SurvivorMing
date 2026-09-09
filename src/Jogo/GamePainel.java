@@ -17,7 +17,8 @@ public class GamePainel extends JPanel implements Runnable {
     private Thread gameThread;
     private boolean running = true;
 
-    private enum GameState { PLAYING, LEVEL_UP, GAME_OVER }
+    // Estados do Jogo atualizados com as novas telas de transição e loja
+    private enum GameState { PLAYING, LEVEL_UP, STAGE_CLEAR, SHOP, GAME_OVER }
     private GameState gameState = GameState.PLAYING;
 
     private Player player;
@@ -29,9 +30,19 @@ public class GamePainel extends JPanel implements Runnable {
     private Boss boss = null;
     private Random random = new Random();
 
+    // Instanciações das classes de progressão e economia
+    private SkillTree skillTree = new SkillTree();
+    private ShopMenu shopMenu = new ShopMenu();
+    private int gold = 0;
+    private int currentStage = 1;
+
+    // Botões da tela de transição de fase (STAGE_CLEAR)
+    private Rectangle btnNextStage = new Rectangle(300, 480, 200, 50);
+    private Rectangle btnSkillTree = new Rectangle(300, 410, 200, 50);
+
     private int score = 0;
     private int shootTimer = 0;
-    private int shootInterval = 45;
+    public int shootInterval = 45;
 
     private boolean up, down, left, right;
 
@@ -79,8 +90,8 @@ public class GamePainel extends JPanel implements Runnable {
                     return;
                 }
 
-                if (gameState == GameState.LEVEL_UP) {
-                    return; // No Level Up usamos o mouse agora!
+                if (gameState == GameState.LEVEL_UP || gameState == GameState.STAGE_CLEAR || gameState == GameState.SHOP) {
+                    return; // Nos menus usamos o mouse
                 }
 
                 if (e.getKeyCode() == KeyEvent.VK_W || e.getKeyCode() == KeyEvent.VK_UP) up = true;
@@ -105,15 +116,43 @@ public class GamePainel extends JPanel implements Runnable {
             }
         });
 
-        // Controles de Mouse para o Menu de Level Up
+        // Controles de Mouse para os Menus do Jogo
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                // 1. Menu de Level Up (durante a partida)
                 if (gameState == GameState.LEVEL_UP) {
                     for (int i = 0; i < upgradeRects.length; i++) {
                         if (upgradeRects[i] != null && upgradeRects[i].contains(e.getPoint())) {
                             if (i < currentUpgrades.size()) {
                                 applyUpgrade(currentUpgrades.get(i).id);
+                            }
+                        }
+                    }
+                }
+                // 2. Menu de Transição de Fase (quando mata o Boss)
+                else if (gameState == GameState.STAGE_CLEAR) {
+                    if (btnSkillTree.contains(e.getPoint())) {
+                        gameState = GameState.SHOP; // Abre a árvore de skills
+                    } else if (btnNextStage.contains(e.getPoint())) {
+                        currentStage++;
+                        score = 0;
+                        // Cria o próximo Boss com mais HP e velocidade progressiva
+                        boss = new Boss(400, 50, "CHEFE DA FASE " + currentStage, 25 + (currentStage * 15), 0.5 + (currentStage * 0.1), currentStage % 3 == 0 ? 3 : currentStage % 2 == 0 ? 2 : 1);
+                        gameState = GameState.PLAYING;
+                    }
+                }
+                // 3. Menu da Loja / Árvore de Habilidades
+                else if (gameState == GameState.SHOP) {
+                    if (shopMenu.getBackBounds().contains(e.getPoint())) {
+                        gameState = GameState.STAGE_CLEAR;
+                    } else {
+                        int clickedIndex = shopMenu.getClickedSkillIndex(e.getPoint(), skillTree.getSkills().size());
+                        if (clickedIndex != -1) {
+                            SkillTree.Skill selectedSkill = skillTree.getSkills().get(clickedIndex);
+                            if (gold >= selectedSkill.cost) {
+                                gold -= selectedSkill.cost; // Desconta o ouro
+                                skillTree.buySkill(selectedSkill, player, GamePainel.this); // Aplica a melhoria
                             }
                         }
                     }
@@ -156,6 +195,8 @@ public class GamePainel extends JPanel implements Runnable {
     }
 
     private void restartGame() {
+        currentStage = 1;
+        gold = 0;
         initGame();
     }
 
@@ -287,12 +328,13 @@ public class GamePainel extends JPanel implements Runnable {
                     score++;
                     bulletHit = true;
 
+                    // Spawn dos Chefes baseado na pontuação
                     if (score == 30 && boss == null) {
-                        boss = new Boss(400, 50, "MUTANTE ALPHA", 25, 0.6, 1); // Chefe 1 (Roxo)
+                        boss = new Boss(400, 50, "MUTANTE ALPHA", 25, 0.6, 1);
                     } else if (score == 90 && boss == null) {
-                        boss = new Boss(400, 50, "COLOSSO DE AÇO", 45, 0.4, 2); // Chefe 2 (Azul Metálico)
+                        boss = new Boss(400, 50, "COLOSSO DE AÇO", 45, 0.4, 2);
                     } else if (score == 180 && boss == null) {
-                        boss = new Boss(400, 50, "DESTRUIDOR FINAL", 75, 0.5, 3); // Chefe 3 (Fogo/Laranja)
+                        boss = new Boss(400, 50, "DESTRUIDOR FINAL", 75, 0.5, 3);
                     }
                     break;
                 }
@@ -308,11 +350,18 @@ public class GamePainel extends JPanel implements Runnable {
                     boss.hp--;
 
                     if (boss.hp <= 0) {
-                        for (int i = 0; i < 10; i++) {
-                            xpOrbs.add(new XpOrb((int)boss.x + (i * 8), (int)boss.y));
-                        }
+                        // Recompensa com Ouro por vencer o chefe da fase
+                        int goldReward = currentStage * 50;
+                        gold += goldReward;
+
+                        // Limpa a tela e vai para a tela de vitória/loja
+                        enemies.clear();
+                        xpOrbs.clear();
+                        magnets.clear();
+                        bullets.clear();
+
                         boss = null;
-                        score += 10;
+                        gameState = GameState.STAGE_CLEAR;
                     }
                 }
             }
@@ -329,7 +378,7 @@ public class GamePainel extends JPanel implements Runnable {
             if (playerRect.intersects(orbRect)) {
                 xpIter.remove();
                 if (player.gainXp(orb.xpValue)) {
-                    rollRandomUpgrades(); // Sorteia novos upgrades aleatórios
+                    rollRandomUpgrades();
                     gameState = GameState.LEVEL_UP;
                 }
             }
@@ -343,19 +392,21 @@ public class GamePainel extends JPanel implements Runnable {
 
             if (playerRect.intersects(magnetRect)) {
                 collectedMagnet = true;
+                magnets.remove(i); // Remove o ímã coletado com segurança pelo índice
                 break;
             }
         }
 
         if (collectedMagnet) {
             boolean leveledUpViaMagnet = false;
-            for (XpOrb orb : xpOrbs) {
+            // Usa uma cópia ou itera com segurança para absorver o XP sem conflito
+            List<XpOrb> orbsCopy = new ArrayList<>(xpOrbs);
+            for (XpOrb orb : orbsCopy) {
                 if (player.gainXp(orb.xpValue)) {
                     leveledUpViaMagnet = true;
                 }
             }
             xpOrbs.clear();
-            magnets.clear();
 
             if (leveledUpViaMagnet) {
                 rollRandomUpgrades();
@@ -391,7 +442,6 @@ public class GamePainel extends JPanel implements Runnable {
         EntityTarget closest = null;
         double minDistance = Double.MAX_VALUE;
 
-        // 1. Verifica inimigos comuns
         for (Enemy enemy : enemies) {
             double dist = Math.pow(enemy.x - player.x, 2) + Math.pow(enemy.y - player.y, 2);
             if (dist < minDistance) {
@@ -400,7 +450,6 @@ public class GamePainel extends JPanel implements Runnable {
             }
         }
 
-        // 2. Verifica o Boss também
         if (boss != null) {
             double distBoss = Math.pow(boss.x - player.x, 2) + Math.pow(boss.y - player.y, 2);
             if (distBoss < minDistance) {
@@ -409,7 +458,6 @@ public class GamePainel extends JPanel implements Runnable {
             }
         }
 
-        // 3. Dispara no alvo mais próximo (seja comum ou boss)
         if (closest != null) {
             double startX = player.x + (player.width / 2.0);
             double startY = player.y + (player.height / 2.0);
@@ -417,7 +465,6 @@ public class GamePainel extends JPanel implements Runnable {
         }
     }
 
-    // Classe auxiliar para unificar o alvo do tiro
     private static class EntityTarget {
         double x, y;
         public EntityTarget(double x, double y) {
@@ -437,22 +484,23 @@ public class GamePainel extends JPanel implements Runnable {
         for (Bullet bullet : bullets) bullet.draw(g);
         player.draw(g);
 
-        // HUD
+        // HUD Principal
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 16));
-        g.drawString("Eliminados: " + score, 20, 30);
-        g.drawString("Nível: " + player.level, 20, 60);
-        g.drawString("XP: " + player.currentXp + " / " + player.nextLevelXp, 20, 90);
-        g.drawString("HP: " + player.hp + " / " + player.maxHp, 20, 120);
+        g.drawString("Fase: " + currentStage, 20, 30);
+        g.drawString("Ouro: " + gold + " 🪙", 20, 55);
+        g.drawString("Nível: " + player.level, 20, 80);
+        g.drawString("XP: " + player.currentXp + " / " + player.nextLevelXp, 20, 105);
+        g.drawString("HP: " + player.hp + " / " + player.maxHp, 20, 130);
 
         // Status do Dash
         if (canDash) {
             g.setColor(Color.CYAN);
-            g.drawString("DASH [SPACE]: PRONTO!", 20, 150);
+            g.drawString("DASH [SPACE]: PRONTO!", 20, 160);
         } else {
             int segundosRestantes = (dashCooldownMax - dashCooldownTimer) / 60;
             g.setColor(Color.GRAY);
-            g.drawString("DASH [SPACE]: Recarregando (" + segundosRestantes + "s)", 20, 150);
+            g.drawString("DASH [SPACE]: Recarregando (" + segundosRestantes + "s)", 20, 160);
         }
 
         // Menu Level Up Interativo com Mouse (Cards)
@@ -476,7 +524,6 @@ public class GamePainel extends JPanel implements Runnable {
 
                 upgradeRects[i] = new Rectangle(cardX, cardY, cardWidth, cardHeight);
 
-                // Efeito visual quando o mouse passa em cima do card (Hover)
                 if (i == hoveredUpgradeIndex) {
                     g.setColor(new Color(70, 70, 100));
                     g.fillRect(cardX - 4, cardY - 4, cardWidth + 8, cardHeight + 8);
@@ -486,11 +533,9 @@ public class GamePainel extends JPanel implements Runnable {
                 }
                 g.fillRect(cardX, cardY, cardWidth, cardHeight);
 
-                // Borda do Card
                 g.setColor(i == hoveredUpgradeIndex ? Color.CYAN : Color.GRAY);
                 g.drawRect(cardX, cardY, cardWidth, cardHeight);
 
-                // Títulos e Descrições
                 g.setColor(Color.YELLOW);
                 g.setFont(new Font("Arial", Font.BOLD, 18));
                 g.drawString("OPÇÃO " + (i + 1), cardX + 20, cardY + 40);
@@ -509,6 +554,41 @@ public class GamePainel extends JPanel implements Runnable {
             }
         }
 
+        // Tela de Transição de Fase (STAGE_CLEAR)
+        if (gameState == GameState.STAGE_CLEAR) {
+            g.setColor(new Color(0, 0, 0, 230));
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            g.setColor(Color.YELLOW);
+            g.setFont(new Font("Arial", Font.BOLD, 30));
+            g.drawString("FASE " + currentStage + " CONCLUÍDA!", 240, 150);
+
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.PLAIN, 18));
+            g.drawString("Ouro Coletado: " + gold + " 🪙", 330, 220);
+            g.drawString("Escolha sua próxima ação:", 300, 320);
+
+            // Botão Árvore de Skills
+            g.setColor(new Color(50, 50, 100));
+            g.fillRect(btnSkillTree.x, btnSkillTree.y, btnSkillTree.width, btnSkillTree.height);
+            g.setColor(Color.CYAN);
+            g.drawRect(btnSkillTree.x, btnSkillTree.y, btnSkillTree.width, btnSkillTree.height);
+            g.setFont(new Font("Arial", Font.BOLD, 16));
+            g.drawString("Árvore de Skills", btnSkillTree.x + 35, btnSkillTree.y + 30);
+
+            // Botão Próxima Fase
+            g.setColor(new Color(0, 100, 0));
+            g.fillRect(btnNextStage.x, btnNextStage.y, btnNextStage.width, btnNextStage.height);
+            g.setColor(Color.GREEN);
+            g.drawRect(btnNextStage.x, btnNextStage.y, btnNextStage.width, btnNextStage.height);
+            g.drawString("Próxima Fase ➡️", btnNextStage.x + 35, btnNextStage.y + 30);
+        }
+
+        // Tela da Loja / Árvore de Habilidades (SHOP)
+        if (gameState == GameState.SHOP) {
+            shopMenu.draw(g, skillTree, gold, getWidth(), getHeight());
+        }
+
         // Tela de Game Over
         if (gameState == GameState.GAME_OVER) {
             g.setColor(new Color(0, 0, 0, 220));
@@ -522,7 +602,7 @@ public class GamePainel extends JPanel implements Runnable {
 
             g.setColor(Color.WHITE);
             g.setFont(new Font("Arial", Font.PLAIN, 18));
-            g.drawString("Inimigos derrotados: " + score, 280, 270);
+            g.drawString("Fase alcançada: " + currentStage, 305, 270);
             g.drawString("Nível alcançado: " + player.level, 305, 305);
 
             g.setColor(Color.YELLOW);
