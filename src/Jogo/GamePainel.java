@@ -288,7 +288,11 @@ public class GamePainel extends JPanel implements Runnable {
                     bulletHit = true;
 
                     if (score == 30 && boss == null) {
-                        boss = new Boss(400, 50);
+                        boss = new Boss(400, 50, "MUTANTE ALPHA", 25, 0.6, 1); // Chefe 1 (Roxo)
+                    } else if (score == 90 && boss == null) {
+                        boss = new Boss(400, 50, "COLOSSO DE AÇO", 45, 0.4, 2); // Chefe 2 (Azul Metálico)
+                    } else if (score == 180 && boss == null) {
+                        boss = new Boss(400, 50, "DESTRUIDOR FINAL", 75, 0.5, 3); // Chefe 3 (Fogo/Laranja)
                     }
                     break;
                 }
