@@ -56,10 +56,10 @@ public class Player {
     public boolean gainXp(int amount) {
         currentXp += amount;
         if (currentXp >= nextLevelXp) {
-            currentXp -= nextLevelXp;
+            currentXp -= nextLevelXp; // Desconta o XP do nível atual, mantendo o "resto" para o próximo
             level++;
-            nextLevelXp += 5; // Aumenta a exigencia para o proximo nivel
-            return true; // Retorna true indicando que subiu de nivel
+            nextLevelXp += 15; // Ou a sua lógica de aumento de XP necessário
+            return true; // Retorna true indicando que subiu de nível
         }
         return false;
     }

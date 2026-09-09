@@ -21,7 +21,8 @@ public class GamePainel extends JPanel implements Runnable {
     private enum GameState { PLAYING, LEVEL_UP, STAGE_CLEAR, SHOP, GAME_OVER }
     private GameState gameState = GameState.PLAYING;
 
-    private Player player;
+    Player player;
+    private int pendingLevelUps = 0; // Guarda quantos níveis faltam o jogador escolher
     private List<Enemy> enemies;
     private List<Bullet> bullets;
     private List<XpOrb> xpOrbs;
@@ -30,10 +31,9 @@ public class GamePainel extends JPanel implements Runnable {
     private Boss boss = null;
     private Random random = new Random();
 
-    // Instanciações das classes de progressão e economia
-    private SkillTree skillTree = new SkillTree();
-    private ShopMenu shopMenu = new ShopMenu();
-    private int gold = 0;
+    // Instanciação da nova árvore de esferas e economia
+    private SphereSkillTree sphereSkillTree = new SphereSkillTree();
+    int gold = 0;
     private int currentStage = 1;
 
     // Botões da tela de transição de fase (STAGE_CLEAR)
@@ -142,19 +142,11 @@ public class GamePainel extends JPanel implements Runnable {
                         gameState = GameState.PLAYING;
                     }
                 }
-                // 3. Menu da Loja / Árvore de Habilidades
+                // 3. Menu da Loja / Árvore de Habilidades em Esfera
                 else if (gameState == GameState.SHOP) {
-                    if (shopMenu.getBackBounds().contains(e.getPoint())) {
+                    boolean keepInShop = sphereSkillTree.handleClick(e, GamePainel.this);
+                    if (!keepInShop) {
                         gameState = GameState.STAGE_CLEAR;
-                    } else {
-                        int clickedIndex = shopMenu.getClickedSkillIndex(e.getPoint(), skillTree.getSkills().size());
-                        if (clickedIndex != -1) {
-                            SkillTree.Skill selectedSkill = skillTree.getSkills().get(clickedIndex);
-                            if (gold >= selectedSkill.cost) {
-                                gold -= selectedSkill.cost; // Desconta o ouro
-                                skillTree.buySkill(selectedSkill, player, GamePainel.this); // Aplica a melhoria
-                            }
-                        }
                     }
                 }
             }
@@ -234,7 +226,17 @@ public class GamePainel extends JPanel implements Runnable {
                 shootInterval = Math.max(5, shootInterval - 8);
                 break;
         }
-        gameState = GameState.PLAYING;
+
+        // Diminui um nível pendente que acabou de ser escolhido
+        pendingLevelUps--;
+
+        // Se ainda sobrou nível para escolher, abre os upgrades de novo
+        if (pendingLevelUps > 0) {
+            rollRandomUpgrades();
+            gameState = GameState.LEVEL_UP;
+        } else {
+            gameState = GameState.PLAYING;
+        }
     }
 
     public void startGame() {
@@ -377,10 +379,15 @@ public class GamePainel extends JPanel implements Runnable {
 
             if (playerRect.intersects(orbRect)) {
                 xpIter.remove();
-                if (player.gainXp(orb.xpValue)) {
+                // Enquanto o gainXp continuar retornando true, significa que subiu de nível
+                while (player.gainXp(orb.xpValue)) {
+                    pendingLevelUps++;
+                }
+                if (pendingLevelUps > 0 && gameState == GameState.PLAYING) {
                     rollRandomUpgrades();
                     gameState = GameState.LEVEL_UP;
                 }
+                break; // Processa uma orbe por vez para evitar conflitos visuais
             }
         }
 
@@ -392,23 +399,22 @@ public class GamePainel extends JPanel implements Runnable {
 
             if (playerRect.intersects(magnetRect)) {
                 collectedMagnet = true;
-                magnets.remove(i); // Remove o ímã coletado com segurança pelo índice
+                magnets.remove(i);
                 break;
             }
         }
 
         if (collectedMagnet) {
-            boolean leveledUpViaMagnet = false;
-            // Usa uma cópia ou itera com segurança para absorver o XP sem conflito
-            List<XpOrb> orbsCopy = new ArrayList<>(xpOrbs);
-            for (XpOrb orb : orbsCopy) {
-                if (player.gainXp(orb.xpValue)) {
-                    leveledUpViaMagnet = true;
+            // Soma o XP de TODAS as orbes que estavam no chão de uma vez só
+            for (XpOrb orb : xpOrbs) {
+                while (player.gainXp(orb.xpValue)) {
+                    pendingLevelUps++;
                 }
             }
             xpOrbs.clear();
 
-            if (leveledUpViaMagnet) {
+            // Se subiu de nível e o jogo está rodando, abre o primeiro menu de level up
+            if (pendingLevelUps > 0 && gameState == GameState.PLAYING) {
                 rollRandomUpgrades();
                 gameState = GameState.LEVEL_UP;
             }
@@ -574,7 +580,7 @@ public class GamePainel extends JPanel implements Runnable {
             g.setColor(Color.CYAN);
             g.drawRect(btnSkillTree.x, btnSkillTree.y, btnSkillTree.width, btnSkillTree.height);
             g.setFont(new Font("Arial", Font.BOLD, 16));
-            g.drawString("Árvore de Skills", btnSkillTree.x + 35, btnSkillTree.y + 30);
+            g.drawString("Esfera de Skills", btnSkillTree.x + 35, btnSkillTree.y + 30);
 
             // Botão Próxima Fase
             g.setColor(new Color(0, 100, 0));
@@ -584,9 +590,9 @@ public class GamePainel extends JPanel implements Runnable {
             g.drawString("Próxima Fase ➡️", btnNextStage.x + 35, btnNextStage.y + 30);
         }
 
-        // Tela da Loja / Árvore de Habilidades (SHOP)
+        // Tela da Loja / Esfera de Habilidades (SHOP)
         if (gameState == GameState.SHOP) {
-            shopMenu.draw(g, skillTree, gold, getWidth(), getHeight());
+            sphereSkillTree.draw(g, gold, getWidth(), getHeight());
         }
 
         // Tela de Game Over
