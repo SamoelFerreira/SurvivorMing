@@ -29,23 +29,17 @@ public class GamePainel extends JPanel implements Runnable {
     private EnemyManager enemyManager;
     private Boss boss = null;
     private Random random = new Random();
-
     private SphereSkillTree sphereSkillTree = new SphereSkillTree();
     int gold = 0;
     private int currentStage = 1;
-
     private Rectangle btnNextStage = new Rectangle(700, 580, 200, 50);
     private Rectangle btnSkillTree = new Rectangle(700, 510, 200, 50);
-
     private int score = 0;
     private int shootTimer = 0;
     public int shootInterval = 1;
-
     private boolean up, down, left, right;
-
     private int magnetSpawnTimer = 0;
     private int magnetSpawnInterval = 900;
-
     private int dashCooldownTimer = 0;
     private final int dashCooldownMax = 1800;
     private boolean canDash = true;
