@@ -5,7 +5,7 @@ import java.awt.image.BufferedImage;
 
 public class Player {
     public int x, y;
-    public int width = 48, height = 48;
+    public int width = 96, height = 96;
     public int speed = 5;
     public int maxHp = 100;
     public int hp = 100;

@@ -407,7 +407,7 @@ public class GamePainel extends JPanel implements Runnable {
         int screenHeight = 900;
 
         // --- APLICAR ZOOM DA CÂMERA AQUI ---
-        double zoom = 1.25; // Aumente para aproximar mais (ex: 1.3 ou 1.4) ou diminua (ex: 1.1)
+        double zoom = 1.00; // Aumente para aproximar mais (ex: 1.3 ou 1.4) ou diminua (ex: 1.1)
         g2d.scale(zoom, zoom);
 
         // Como o zoom redimensiona a tela, recalculamos a largura/altura efetiva para a câmera centralizar certo:
