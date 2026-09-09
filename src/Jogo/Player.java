@@ -19,6 +19,7 @@ public class Player {
     private BufferedImage[] idleFrames;
     private BufferedImage[] runFrames;
     private BufferedImage[] shootFrames;
+    private boolean facingLeft = false;
 
     private int animFrame = 0;
     private int animTimer = 0;
@@ -33,6 +34,14 @@ public class Player {
         this.x = startX;
         this.y = startY;
         carregarSprites();
+    }
+
+    public void faceTarget(double targetX) {
+        if (targetX < this.x) {
+            facingLeft = true;
+        } else {
+            facingLeft = false;
+        }
     }
 
     private void carregarSprites() {
@@ -56,8 +65,16 @@ public class Player {
 
         if (up) { y -= speed; isMoving = true; }
         if (down) { y += speed; isMoving = true; }
-        if (left) { x -= speed; isMoving = true; }
-        if (right) { x += speed; isMoving = true; }
+        if (left) {
+            x -= speed;
+            isMoving = true;
+            facingLeft = true;  // Adiciona isso aqui
+        }
+        if (right) {
+            x += speed;
+            isMoving = true;
+            facingLeft = false; // Adiciona isso aqui
+        }
 
         // Controla o tempo da animação de tiro
         if (isAttacking) {
@@ -122,9 +139,17 @@ public class Player {
 
         int frameIndex = animFrame % currentFrames.length;
 
-        // Desenha o frame atual na tela
+        // Desenha o frame atual na tela com suporte a espelhamento horizontal
         if (currentFrames != null && currentFrames[frameIndex] != null) {
-            g.drawImage(currentFrames[frameIndex], screenX, screenY, width, height, null);
+            BufferedImage frameToDraw = currentFrames[frameIndex];
+
+            if (facingLeft) {
+                // Inverte horizontalmente (-width e screenX + width)
+                g.drawImage(frameToDraw, screenX + width, screenY, -width, height, null);
+            } else {
+                // Desenha normalmente
+                g.drawImage(frameToDraw, screenX, screenY, width, height, null);
+            }
         } else {
             g.setColor(Color.BLUE);
             g.fillRect(screenX, screenY, width, height);

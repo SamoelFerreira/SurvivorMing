@@ -358,7 +358,7 @@ public class GamePainel extends JPanel implements Runnable {
         EntityTarget closest = null;
         double minDistance = Double.MAX_VALUE;
 
-        // Raio máximo de alcance do tiro (ex: 700 pixels ao redor do player)
+        // Raio máximo de alcance do tiro (ex: 450 pixels ao redor do player)
         double maxShootRange = 450.0;
 
         for (Enemy enemy : enemies) {
@@ -384,6 +384,9 @@ public class GamePainel extends JPanel implements Runnable {
             double startX = player.x + (player.width / 2.0);
             double startY = player.y + (player.height / 2.0);
             bullets.add(new Bullet(startX, startY, closest.x, closest.y));
+
+            player.faceTarget(closest.x); // <--- Garanta que esta linha está aqui
+            player.triggerAttack();
         }
     }
 
