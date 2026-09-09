@@ -12,12 +12,13 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.awt.image.BufferedImage;
 
 public class GamePainel extends JPanel implements Runnable {
     private Thread gameThread;
     private boolean running = true;
 
-    private enum GameState {PLAYING, LEVEL_UP, STAGE_CLEAR, SHOP, GAME_OVER}
+    private enum GameState {CHARACTER_SELECT, PLAYING, LEVEL_UP, STAGE_CLEAR, SHOP, GAME_OVER}
     private GameState gameState = GameState.PLAYING;
 
     Player player;
@@ -42,6 +43,9 @@ public class GamePainel extends JPanel implements Runnable {
     public int shootInterval = 1;
 
     private boolean up, down, left, right;
+    private int selectedCharacter = 1;
+    private final BufferedImage[] characterPreviews = new BufferedImage[5];
+    private final Rectangle[] characterCards = new Rectangle[5];
 
     private int magnetSpawnTimer = 0;
     private int magnetSpawnInterval = 900;
@@ -71,11 +75,23 @@ public class GamePainel extends JPanel implements Runnable {
         setBackground(Color.DARK_GRAY);
         setFocusable(true);
 
+        carregarPreviewsPersonagens();
         initGame();
 
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
+                if (gameState == GameState.CHARACTER_SELECT) {
+                    if (e.getKeyCode() >= KeyEvent.VK_1 && e.getKeyCode() <= KeyEvent.VK_5) {
+                        selectedCharacter = e.getKeyCode() - KeyEvent.VK_0;
+                        repaint();
+                    } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        player = criarPersonagemSelecionado();
+                        sphereSkillTree = new SphereSkillTree(player.getNome());
+                        gameState = GameState.PLAYING;
+                    }
+                    return;
+                }
                 if (gameState == GameState.GAME_OVER) {
                     if (e.getKeyCode() == KeyEvent.VK_R) {
                         restartGame();
@@ -119,6 +135,14 @@ public class GamePainel extends JPanel implements Runnable {
                             }
                         }
                     }
+                } else if (gameState == GameState.CHARACTER_SELECT) {
+                    for (int i = 0; i < characterCards.length; i++) {
+                        if (characterCards[i] != null && characterCards[i].contains(e.getPoint())) {
+                            selectedCharacter = i + 1;
+                            repaint();
+                            break;
+                        }
+                    }
                 } else if (gameState == GameState.STAGE_CLEAR) {
                     if (btnSkillTree.contains(e.getPoint())) {
                         gameState = GameState.SHOP;
@@ -155,7 +179,7 @@ public class GamePainel extends JPanel implements Runnable {
     }
 
     private void initGame() {
-        player = new Player(800, 450); // Começa no meio de um mundo maior
+        player = criarPersonagemSelecionado();
         enemies = new ArrayList<>();
         bullets = new ArrayList<>();
         xpOrbs = new ArrayList<>();
@@ -168,12 +192,36 @@ public class GamePainel extends JPanel implements Runnable {
         magnetSpawnInterval = 900;
         dashCooldownTimer = 0;
         canDash = true;
-        gameState = GameState.PLAYING;
+        gameState = GameState.CHARACTER_SELECT;
+    }
+
+        private void carregarPreviewsPersonagens() {
+        characterPreviews[0] = Player.carregarPreview(
+            "/sprites/RazzaBug_Archer", "Archer_Idle.png", 6);
+        characterPreviews[1] = Player.carregarPreview(
+            "/sprites/MaziMage_Lancer", "Lancer_Idle.png", 12);
+        characterPreviews[2] = Player.carregarPreview(
+            "/sprites/Rafengels_Warrior", "Warrior_Idle.png", 8);
+        characterPreviews[3] = Player.carregarPreview(
+            "/sprites/PutinhaRica_Monk", "Idle.png", 6);
+        characterPreviews[4] = Player.carregarPreview(
+            "/sprites/TotoLove_Pawn", "Pawn_Idle.png", 8);
+        }
+
+    private Player criarPersonagemSelecionado() {
+        switch (selectedCharacter) {
+            case 2: return new MaziMage(800, 450);
+            case 3: return new Rafengels(800, 450);
+            case 4: return new PutinhaRica(800, 450);
+            case 5: return new TotoLove(800, 450);
+            default: return new RazzaBug(800, 450);
+        }
     }
 
     private void restartGame() {
         currentStage = 1;
         gold = 0;
+        selectedCharacter = 1;
         initGame();
     }
 
@@ -248,11 +296,13 @@ public class GamePainel extends JPanel implements Runnable {
         }
 
         player.update(up, down, left, right);
+        player.atualizarPassiva(enemies);
 
         enemyManager.update(enemies, player.x, player.y);
 
         shootTimer++;
-        if (shootTimer >= shootInterval && (!enemies.isEmpty() || boss != null)) {
+        int personagemShootInterval = Math.max(1, (int) (shootInterval / player.getVelocidadeAtaque()));
+        if (shootTimer >= personagemShootInterval && (!enemies.isEmpty() || boss != null)) {
             shootTimer = 0;
             shootAtClosestEnemy();
         }
@@ -275,9 +325,14 @@ public class GamePainel extends JPanel implements Runnable {
 
                 if (bulletRect.intersects(enemyRect)) {
                     bIter.remove();
-                    xpOrbs.add(new XpOrb((int) enemy.x + 10, (int) enemy.y + 10));
-                    eIter.remove();
-                    score++;
+                    enemy.hp -= (int) Math.ceil(bullet.damage);
+                    if (enemy.hp <= 0) {
+                        xpOrbs.add(new XpOrb((int) enemy.x + 10, (int) enemy.y + 10));
+                        player.aoMatarInimigo(false, 5);
+                        gold += player instanceof PutinhaRica ? 6 : 5;
+                        eIter.remove();
+                        score++;
+                    }
                     bulletHit = true;
                     break;
                 }
@@ -289,9 +344,10 @@ public class GamePainel extends JPanel implements Runnable {
                 Rectangle bossRect = new Rectangle((int) boss.x, (int) boss.y, boss.width, boss.height);
                 if (bulletRect.intersects(bossRect)) {
                     bIter.remove();
-                    boss.hp--;
+                    boss.hp -= (int) Math.ceil(bullet.damage);
                     if (boss.hp <= 0) {
-                        gold += currentStage * 50;
+                        player.aoMatarInimigo(true, currentStage * 50);
+                        gold += (int) Math.round(currentStage * 50 * (player instanceof PutinhaRica ? 1.3 : 1.0));
                         enemies.clear();
                         xpOrbs.clear();
                         magnets.clear();
@@ -345,8 +401,8 @@ public class GamePainel extends JPanel implements Runnable {
         // Dano no Player
         for (Enemy enemy : enemies) {
             Rectangle enemyRect = new Rectangle((int) enemy.x, (int) enemy.y, enemy.width, enemy.height);
-            if (playerRect.intersects(enemyRect)) {
-                player.hp -= 1;
+            if (playerRect.intersects(enemyRect) && !enemy.isAliado()) {
+                player.receberDano(1);
                 if (player.hp <= 0) gameState = GameState.GAME_OVER;
             }
         }
@@ -354,7 +410,7 @@ public class GamePainel extends JPanel implements Runnable {
         if (boss != null) {
             Rectangle bossRect = new Rectangle((int) boss.x, (int) boss.y, boss.width, boss.height);
             if (playerRect.intersects(bossRect)) {
-                player.hp -= 2;
+                player.receberDano(2);
                 if (player.hp <= 0) gameState = GameState.GAME_OVER;
             }
         }
@@ -389,7 +445,8 @@ public class GamePainel extends JPanel implements Runnable {
         if (closest != null) {
             double startX = player.x + (player.width / 2.0);
             double startY = player.y + (player.height / 2.0);
-            bullets.add(new Bullet(startX, startY, closest.x, closest.y));
+            player.triggerAttack();
+            bullets.add(new Bullet(startX, startY, closest.x, closest.y, player.getDanoAtaque()));
         }
     }
 
@@ -466,6 +523,50 @@ public class GamePainel extends JPanel implements Runnable {
             int segundosRestantes = (dashCooldownMax - dashCooldownTimer) / 60;
             g2d.setColor(Color.GRAY);
             g2d.drawString("DASH [SPACE]: Recarregando (" + segundosRestantes + "s)", 20, 160);
+        }
+
+        if (gameState == GameState.CHARACTER_SELECT) {
+            g2d.setColor(new Color(0, 0, 0, 235));
+            g2d.fillRect(0, 0, screenWidth, screenHeight);
+            g2d.setColor(Color.CYAN);
+            g2d.setFont(new Font("Arial", Font.BOLD, 30));
+            g2d.drawString("ESCOLHA SEU PERSONAGEM", screenWidth / 2 - 190, 120);
+
+            String[] nomes = {"RazzaBug", "MaziMage", "Rafengels", "PutinhaRica", "TotoLove"};
+            String[] descricoes = {
+                    "Glitch aleatorio: velocidade e stun em area",
+                    "Fica invisivel com pouca vida e regenera",
+                    "Recebe 30% menos dano",
+                    "Ganha mais ouro e dano conforme enriquece",
+                    "Pode converter ate 5 inimigos em aliados"
+            };
+            for (int i = 0; i < nomes.length; i++) {
+                int cardX = 180 + i * 250;
+                int cardY = 260;
+                characterCards[i] = new Rectangle(cardX, cardY, 220, 220);
+                g2d.setColor(i + 1 == selectedCharacter ? new Color(20, 100, 120) : new Color(35, 35, 45));
+                g2d.fillRect(cardX, cardY, 220, 220);
+                g2d.setColor(i + 1 == selectedCharacter ? Color.YELLOW : Color.GRAY);
+                g2d.drawRect(cardX, cardY, 220, 220);
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(new Font("Arial", Font.BOLD, 18));
+                g2d.drawString((i + 1) + ". " + nomes[i], cardX + 15, cardY + 40);
+
+                if (characterPreviews[i] != null) {
+                    g2d.drawImage(characterPreviews[i], cardX + 65, cardY + 52, 90, 90, null);
+                } else {
+                    g2d.setColor(Color.RED);
+                    g2d.setFont(new Font("Arial", Font.PLAIN, 12));
+                    g2d.drawString("Sprite indisponível", cardX + 48, cardY + 100);
+                }
+
+                g2d.setFont(new Font("Arial", Font.PLAIN, 14));
+                g2d.setColor(Color.WHITE);
+                g2d.drawString(descricoes[i], cardX + 15, cardY + 85);
+            }
+            g2d.setColor(Color.GREEN);
+            g2d.setFont(new Font("Arial", Font.BOLD, 18));
+            g2d.drawString("Pressione 1-5 para selecionar e ENTER para iniciar", screenWidth / 2 - 260, 600);
         }
 
         // --- MENU LEVEL UP ---

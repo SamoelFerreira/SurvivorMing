@@ -10,7 +10,11 @@ public class SpriteSheet {
     public SpriteSheet(String caminho) {
         try {
             // Carrega a imagem do classpath (ex: /sprites/Archer_Idle.png)
-            sheet = ImageIO.read(getClass().getResourceAsStream(caminho));
+            java.io.InputStream input = getClass().getResourceAsStream(caminho);
+            if (input != null) {
+                sheet = ImageIO.read(input);
+                input.close();
+            }
         } catch (IOException e) {
             System.out.println("Erro ao carregar a spritesheet: " + caminho + " -> " + e.getMessage());
         }
@@ -19,6 +23,10 @@ public class SpriteSheet {
     // Método para fatiar a spritesheet horizontalmente em vários quadros
     public BufferedImage[] cortarFrames(int totalFrames) {
         if (sheet == null) return new BufferedImage[0];
+
+        if (totalFrames <= 0 || sheet.getWidth() < totalFrames) {
+            return new BufferedImage[0];
+        }
 
         int frameWidth = sheet.getWidth() / totalFrames;
         int frameHeight = sheet.getHeight();

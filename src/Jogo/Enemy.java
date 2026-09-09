@@ -7,6 +7,9 @@ public class Enemy {
     public int width = 35;
     public int height = 35;
     public double speed = 1.5;
+    public int hp = 15;
+    private int stunTimer;
+    private int allyTimer;
 
     public Enemy(double x, double y) {
         this.x = x;
@@ -14,6 +17,14 @@ public class Enemy {
     }
 
     public void update(double playerX, double playerY) {
+        if (stunTimer > 0) {
+            stunTimer--;
+            return;
+        }
+        if (allyTimer > 0) {
+            allyTimer--;
+            return;
+        }
         double dx = playerX - x;
         double dy = playerY - y;
         double distance = Math.sqrt(dx * dx + dy * dy);
@@ -23,6 +34,12 @@ public class Enemy {
             y += (dy / distance) * speed;
         }
     }
+
+    public void stun(int duration) { stunTimer = Math.max(stunTimer, duration); }
+
+    public void converter(int duration) { allyTimer = Math.max(allyTimer, duration); }
+
+    public boolean isAliado() { return allyTimer > 0; }
 
     public void draw(Graphics g, int cameraX, int cameraY) {
         Graphics2D g2d = (Graphics2D) g;

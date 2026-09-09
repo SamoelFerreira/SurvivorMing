@@ -3,10 +3,15 @@ package Jogo;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.imageio.ImageIO;
 
 public class SphereSkillTree {
 
@@ -19,6 +24,7 @@ public class SphereSkillTree {
         boolean unlocked;
         String type; // "ATTACK", "DEFENSE", "SPEED", "UTILITY", "CORE", "SPECIAL"
         List<Integer> connectedTo;
+        BufferedImage icon;
 
         public SkillNode(int id, String name, String description, int x, int y, int cost, String type) {
             this.id = id;
@@ -35,13 +41,53 @@ public class SphereSkillTree {
 
     private Map<Integer, SkillNode> nodes = new HashMap<>();
     private SkillNode selectedCard = null;
+    private final String personagem;
 
     // Posições dos botões na tela
     private Rectangle btnBuy = new Rectangle(510, 465, 150, 35);
     private Rectangle btnClose = new Rectangle(300, 525, 200, 40);
 
-    public SphereSkillTree() {
+    public SphereSkillTree(String personagem) {
+        this.personagem = personagem;
         buildSkillTree30();
+        loadRandomIcons(personagem);
+    }
+
+    public SphereSkillTree() {
+        this("RazzaBug");
+    }
+
+    private void loadRandomIcons(String personagem) {
+        List<File> iconFiles = new ArrayList<>();
+        collectPngFiles(new File("res/skill_tree", personagem), iconFiles);
+        Collections.shuffle(iconFiles);
+
+        if (iconFiles.isEmpty()) return;
+
+        int index = 0;
+        for (SkillNode node : nodes.values()) {
+            File iconFile = iconFiles.get(index % iconFiles.size());
+            try {
+                node.icon = ImageIO.read(iconFile);
+            } catch (IOException ignored) {
+                node.icon = null;
+            }
+            index++;
+        }
+    }
+
+    private void collectPngFiles(File directory, List<File> result) {
+        if (directory == null || !directory.isDirectory()) return;
+        File[] files = directory.listFiles();
+        if (files == null) return;
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                collectPngFiles(file, result);
+            } else if (file.getName().toLowerCase().endsWith(".png")) {
+                result.add(file);
+            }
+        }
     }
 
     private void buildSkillTree30() {
@@ -130,9 +176,9 @@ public class SphereSkillTree {
         // Título estilizado com sombra
         g2d.setFont(new Font("Arial", Font.BOLD, 22));
         g2d.setColor(new Color(0, 0, 0, 150));
-        g2d.drawString("MATRIZ DE HABILIDADES CIBERNÉTICAS", 202, 42);
+        g2d.drawString("MATRIZ DE HABILIDADES - " + personagem, 202, 42);
         g2d.setColor(Color.CYAN);
-        g2d.drawString("MATRIZ DE HABILIDADES CIBERNÉTICAS", 200, 40);
+        g2d.drawString("MATRIZ DE HABILIDADES - " + personagem, 200, 40);
 
         // Ouro com ícone brilhante
         g2d.setFont(new Font("Arial", Font.BOLD, 15));
@@ -201,11 +247,17 @@ public class SphereSkillTree {
                 g2d.drawOval(node.x - radius, node.y - radius, radius * 2, radius * 2);
             }
 
-            g2d.setFont(new Font("Arial", Font.BOLD, 10));
-            g2d.setColor(node.unlocked || canUnlock(node) ? Color.BLACK : Color.LIGHT_GRAY);
-            String label = getNodeSymbol(node.type);
-            FontMetrics fm = g2d.getFontMetrics();
-            g2d.drawString(label, node.x - fm.stringWidth(label) / 2, node.y + 4);
+            if (node.icon != null) {
+                int iconSize = 25;
+                g2d.drawImage(node.icon, node.x - iconSize / 2, node.y - iconSize / 2,
+                        iconSize, iconSize, null);
+            } else {
+                g2d.setFont(new Font("Arial", Font.BOLD, 10));
+                g2d.setColor(node.unlocked || canUnlock(node) ? Color.BLACK : Color.LIGHT_GRAY);
+                String label = getNodeSymbol(node.type);
+                FontMetrics fm = g2d.getFontMetrics();
+                g2d.drawString(label, node.x - fm.stringWidth(label) / 2, node.y + 4);
+            }
         }
 
         // Painel de Informações do Nó Selecionado (Inferior)

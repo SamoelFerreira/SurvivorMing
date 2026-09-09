@@ -3,12 +3,11 @@ package Jogo;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-public class Player {
+public class Player extends Personagem {
     public int x, y;
     public int width = 48, height = 48;
-    public int speed = 5;
-    public int maxHp = 100;
-    public int hp = 100;
+    public double speed = 5;
+    protected final java.util.Random random = new java.util.Random();
 
     // Sistema de XP
     public int level = 1;
@@ -30,20 +29,45 @@ public class Player {
     private final int attackDuration = 20; // Quantos frames a animação de tiro dura
 
     public Player(int startX, int startY) {
-        this.x = startX;
-        this.y = startY;
-        carregarSprites();
+        this(startX, startY, "Arqueiro", 100, 15, 5, 1.0);
     }
 
-    private void carregarSprites() {
-        SpriteSheet idleLoader = new SpriteSheet("/sprites/archeridle.png");
-        idleFrames = idleLoader.cortarFrames(6);
+    protected Player(int startX, int startY, String nome, int vidaMax, double danoAtaque,
+                     double velocidadeMovimento, double velocidadeAtaque,
+                     String spriteFolder, String idleSprite, int idleFramesCount,
+                     String runSprite, int runFramesCount,
+                     String attackSprite, int attackFramesCount) {
+        super(nome, vidaMax, danoAtaque, velocidadeMovimento, velocidadeAtaque);
+        this.x = startX;
+        this.y = startY;
+        this.speed = velocidadeMovimento;
+        carregarSprites(spriteFolder, idleSprite, idleFramesCount, runSprite, runFramesCount,
+                attackSprite, attackFramesCount);
+    }
 
-        SpriteSheet runLoader = new SpriteSheet("/sprites/archerrun.png");
-        runFrames = runLoader.cortarFrames(4);
+    private Player(int startX, int startY, String nome, int vidaMax, double danoAtaque,
+                   double velocidadeMovimento, double velocidadeAtaque) {
+        this(startX, startY, nome, vidaMax, danoAtaque, velocidadeMovimento, velocidadeAtaque,
+                "/sprites", "archeridle.png", 6, "archerrun.png", 4, "archershoot.png", 8);
+    }
 
-        SpriteSheet shootLoader = new SpriteSheet("/sprites/archershoot.png");
-        shootFrames = shootLoader.cortarFrames(8);
+    private void carregarSprites(String spriteFolder, String idleSprite, int idleFramesCount,
+                                 String runSprite, int runFramesCount,
+                                 String attackSprite, int attackFramesCount) {
+        idleFrames = carregarFrames(spriteFolder, idleSprite, idleFramesCount);
+        runFrames = carregarFrames(spriteFolder, runSprite, runFramesCount);
+        shootFrames = carregarFrames(spriteFolder, attackSprite, attackFramesCount);
+    }
+
+    private BufferedImage[] carregarFrames(String folder, String fileName, int frameCount) {
+        SpriteSheet loader = new SpriteSheet(folder + "/" + fileName);
+        return loader.cortarFrames(frameCount);
+    }
+
+    public static BufferedImage carregarPreview(String folder, String fileName, int frameCount) {
+        SpriteSheet loader = new SpriteSheet(folder + "/" + fileName);
+        BufferedImage[] frames = loader.cortarFrames(frameCount);
+        return frames.length == 0 ? null : frames[0];
     }
 
     public void triggerAttack() {
@@ -54,10 +78,10 @@ public class Player {
     public void update(boolean up, boolean down, boolean left, boolean right) {
         isMoving = false;
 
-        if (up) { y -= speed; isMoving = true; }
-        if (down) { y += speed; isMoving = true; }
-        if (left) { x -= speed; isMoving = true; }
-        if (right) { x += speed; isMoving = true; }
+        if (up) { y -= (int) speed; isMoving = true; }
+        if (down) { y += (int) speed; isMoving = true; }
+        if (left) { x -= (int) speed; isMoving = true; }
+        if (right) { x += (int) speed; isMoving = true; }
 
         // Controla o tempo da animação de tiro
         if (isAttacking) {
@@ -96,6 +120,11 @@ public class Player {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void atualizarPassiva(java.util.List<Enemy> inimigos) {
+        // O personagem base nao possui passiva adicional.
     }
 
     public void draw(Graphics g, int cameraX, int cameraY) {
