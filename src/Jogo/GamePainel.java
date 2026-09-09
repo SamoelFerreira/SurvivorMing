@@ -42,7 +42,7 @@ public class GamePainel extends JPanel implements Runnable {
 
     private int score = 0;
     private int shootTimer = 0;
-    public int shootInterval = 45;
+    public int shootInterval = 1;
 
     private boolean up, down, left, right;
 
@@ -314,14 +314,14 @@ public class GamePainel extends JPanel implements Runnable {
                 continue;
             }
 
-            Rectangle bulletRect = new Rectangle((int)bullet.x, (int)bullet.y, bullet.width, bullet.height);
+            Rectangle bulletRect = new Rectangle((int) bullet.x, (int) bullet.y, bullet.width, bullet.height);
             boolean bulletHit = false;
 
             // Colisão: Tiro x Inimigo Comum
             Iterator<Enemy> eIter = enemies.iterator();
             while (eIter.hasNext()) {
                 Enemy enemy = eIter.next();
-                Rectangle enemyRect = new Rectangle((int)enemy.x, (int)enemy.y, enemy.width, enemy.height);
+                Rectangle enemyRect = new Rectangle((int) enemy.x, (int) enemy.y, enemy.width, enemy.height);
 
                 if (bulletRect.intersects(enemyRect)) {
                     bIter.remove();
@@ -346,17 +346,15 @@ public class GamePainel extends JPanel implements Runnable {
 
             // Colisão: Tiro x Boss
             if (boss != null) {
-                Rectangle bossRect = new Rectangle((int)boss.x, (int)boss.y, boss.width, boss.height);
+                Rectangle bossRect = new Rectangle((int) boss.x, (int) boss.y, boss.width, boss.height);
                 if (bulletRect.intersects(bossRect)) {
                     bIter.remove();
                     boss.hp--;
 
                     if (boss.hp <= 0) {
-                        // Recompensa com Ouro por vencer o chefe da fase
                         int goldReward = currentStage * 50;
                         gold += goldReward;
 
-                        // Limpa a tela e vai para a tela de vitória/loja
                         enemies.clear();
                         xpOrbs.clear();
                         magnets.clear();
@@ -379,7 +377,6 @@ public class GamePainel extends JPanel implements Runnable {
 
             if (playerRect.intersects(orbRect)) {
                 xpIter.remove();
-                // Enquanto o gainXp continuar retornando true, significa que subiu de nível
                 while (player.gainXp(orb.xpValue)) {
                     pendingLevelUps++;
                 }
@@ -387,25 +384,25 @@ public class GamePainel extends JPanel implements Runnable {
                     rollRandomUpgrades();
                     gameState = GameState.LEVEL_UP;
                 }
-                break; // Processa uma orbe por vez para evitar conflitos visuais
+                break;
             }
         }
 
         // Colisão: Player x Ímã
         boolean collectedMagnet = false;
-        for (int i = 0; i < magnets.size(); i++) {
-            Magnet magnet = magnets.get(i);
+        Iterator<Magnet> magnetIter = magnets.iterator();
+        while (magnetIter.hasNext()) {
+            Magnet magnet = magnetIter.next();
             Rectangle magnetRect = new Rectangle(magnet.x, magnet.y, magnet.width, magnet.height);
 
             if (playerRect.intersects(magnetRect)) {
                 collectedMagnet = true;
-                magnets.remove(i);
+                magnetIter.remove();
                 break;
             }
         }
 
         if (collectedMagnet) {
-            // Soma o XP de TODAS as orbes que estavam no chão de uma vez só
             for (XpOrb orb : xpOrbs) {
                 while (player.gainXp(orb.xpValue)) {
                     pendingLevelUps++;
@@ -413,17 +410,17 @@ public class GamePainel extends JPanel implements Runnable {
             }
             xpOrbs.clear();
 
-            // Se subiu de nível e o jogo está rodando, abre o primeiro menu de level up
             if (pendingLevelUps > 0 && gameState == GameState.PLAYING) {
                 rollRandomUpgrades();
                 gameState = GameState.LEVEL_UP;
             }
         }
 
-        // Colisão: Inimigo Comum x Player
-        for (int i = 0; i < enemies.size(); i++) {
-            Enemy enemy = enemies.get(i);
-            Rectangle enemyRect = new Rectangle((int)enemy.x, (int)enemy.y, enemy.width, enemy.height);
+        // Colisão: Inimigo Comum x Player (Seguro com Iterator caso queira remover ou apenas interagir)
+        Iterator<Enemy> enemyDamageIter = enemies.iterator();
+        while (enemyDamageIter.hasNext()) {
+            Enemy enemy = enemyDamageIter.next();
+            Rectangle enemyRect = new Rectangle((int) enemy.x, (int) enemy.y, enemy.width, enemy.height);
             if (playerRect.intersects(enemyRect)) {
                 player.hp -= 1;
                 if (player.hp <= 0) {
@@ -434,7 +431,7 @@ public class GamePainel extends JPanel implements Runnable {
 
         // Colisão: Boss x Player
         if (boss != null) {
-            Rectangle bossRect = new Rectangle((int)boss.x, (int)boss.y, boss.width, boss.height);
+            Rectangle bossRect = new Rectangle((int) boss.x, (int) boss.y, boss.width, boss.height);
             if (playerRect.intersects(bossRect)) {
                 player.hp -= 2;
                 if (player.hp <= 0) {

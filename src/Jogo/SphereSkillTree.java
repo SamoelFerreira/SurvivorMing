@@ -2,6 +2,7 @@ package Jogo;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
+import java.awt.geom.Ellipse2D;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,9 +17,10 @@ public class SphereSkillTree {
         int x, y;
         int cost;
         boolean unlocked;
-        List<Integer> connectedTo; // IDs dos nós vizinhos conectados
+        String type; // "ATTACK", "DEFENSE", "SPEED", "UTILITY", "CORE", "SPECIAL"
+        List<Integer> connectedTo;
 
-        public SkillNode(int id, String name, String description, int x, int y, int cost) {
+        public SkillNode(int id, String name, String description, int x, int y, int cost, String type) {
             this.id = id;
             this.name = name;
             this.description = description;
@@ -26,6 +28,7 @@ public class SphereSkillTree {
             this.y = y;
             this.cost = cost;
             this.unlocked = false;
+            this.type = type;
             this.connectedTo = new ArrayList<>();
         }
     }
@@ -33,9 +36,9 @@ public class SphereSkillTree {
     private Map<Integer, SkillNode> nodes = new HashMap<>();
     private SkillNode selectedCard = null;
 
-    // Retângulos para os botões de interação na tela da Loja/Árvore
-    private Rectangle btnBuy = new Rectangle(0, 0, 0, 0);
-    private Rectangle btnClose = new Rectangle(300, 520, 200, 40);
+    // Posições dos botões na tela
+    private Rectangle btnBuy = new Rectangle(510, 465, 150, 35);
+    private Rectangle btnClose = new Rectangle(300, 525, 200, 40);
 
     public SphereSkillTree() {
         buildSkillTree30();
@@ -45,69 +48,58 @@ public class SphereSkillTree {
         nodes.clear();
 
         // --- NÚCLEO CENTRAL (ID 0) ---
-        nodes.put(0, new SkillNode(0, "Núcleo de Poder", "Ponto de partida da árvore", 400, 300, 0));
-        nodes.get(0).unlocked = true; // Começa desbloqueado
+        nodes.put(0, new SkillNode(0, "Núcleo de Poder", "Ponto de partida da árvore cibernética.", 400, 300, 0, "CORE"));
+        nodes.get(0).unlocked = true;
 
-        // --- RAMO SUPERIOR (ATAQUE / CADÊNCIA) ---
-        nodes.put(1, new SkillNode(1, "Ataque I", "Bônus inicial de dano/cadência", 400, 230, 50));
-        nodes.put(2, new SkillNode(2, "Ataque II", "Melhoria de projétil", 400, 160, 100));
-        nodes.put(3, new SkillNode(3, "Ataque III", "Cadência de tiro aprimorada", 400, 90, 200));
-        nodes.put(4, new SkillNode(4, "Fúria", "Aumento crítico de cadência", 330, 60, 350));
-        nodes.put(5, new SkillNode(5, "Mira Letal", "Chance de dano duplo", 470, 60, 350));
+        // --- RAMO SUPERIOR (ATAQUE) ---
+        nodes.put(1, new SkillNode(1, "Ataque I", "Bônus inicial de cadência e dano.", 400, 230, 50, "ATTACK"));
+        nodes.put(2, new SkillNode(2, "Ataque II", "Melhoria balística de projétil.", 400, 160, 100, "ATTACK"));
+        nodes.put(3, new SkillNode(3, "Ataque III", "Cadência de tiro altamente aprimorada.", 400, 90, 200, "ATTACK"));
+        nodes.put(4, new SkillNode(4, "Fúria de Disparo", "Aumento crítico na velocidade de tiro.", 330, 60, 350, "ATTACK"));
+        nodes.put(5, new SkillNode(5, "Mira Letal", "Chance passiva de dano duplo.", 470, 60, 350, "ATTACK"));
 
-        // --- RAMO INFERIOR (DEFESA / VIDA) ---
-        nodes.put(6, new SkillNode(6, "Resiliência I", "+10 HP Máximo", 400, 370, 50));
-        nodes.put(7, new SkillNode(7, "Resiliência II", "+20 HP Máximo", 400, 440, 100));
-        nodes.put(8, new SkillNode(8, "Resiliência III", "+30 HP Máximo", 400, 510, 200));
-        nodes.put(9, new SkillNode(9, "Carapaça", "Reduz dano recebido", 330, 540, 350));
-        nodes.put(10, new SkillNode(10, "Regeneração", "Cura passiva leve", 470, 540, 350));
+        // --- RAMO INFERIOR (DEFESA) ---
+        nodes.put(6, new SkillNode(6, "Resiliência I", "+10 de HP Máximo.", 400, 370, 50, "DEFENSE"));
+        nodes.put(7, new SkillNode(7, "Resiliência II", "+20 de HP Máximo.", 400, 440, 100, "DEFENSE"));
+        nodes.put(8, new SkillNode(8, "Resiliência III", "+30 de HP Máximo.", 400, 510, 200, "DEFENSE"));
+        nodes.put(9, new SkillNode(9, "Carapaça Térmica", "Reduz o impacto de dano físico.", 330, 540, 350, "DEFENSE"));
+        nodes.put(10, new SkillNode(10, "Nanobôs de Cura", "Regeneração passiva leve de HP.", 470, 540, 350, "DEFENSE"));
 
-        // --- RAMO ESQUERDO (MOBILIDADE / VELOCIDADE) ---
-        nodes.put(11, new SkillNode(11, "Agilidade I", "+1 Velocidade de Movimento", 330, 300, 50));
-        nodes.put(12, new SkillNode(12, "Agilidade II", "+1 Velocidade de Movimento", 260, 300, 100));
-        nodes.put(13, new SkillNode(13, "Agilidade III", "Movvimento super fluido", 190, 300, 200));
-        nodes.put(14, new SkillNode(14, "Dash Rápido", "Cooldown de dash menor", 140, 240, 300));
-        nodes.put(15, new SkillNode(15, "Esquiva", "Chance de evitar dano", 140, 360, 300));
+        // --- RAMO ESQUERDO (MOBILIDADE) ---
+        nodes.put(11, new SkillNode(11, "Agilidade I", "+1 de Velocidade de Movimento.", 330, 300, 50, "SPEED"));
+        nodes.put(12, new SkillNode(12, "Agilidade II", "+1 de Velocidade de Movimento.", 260, 300, 100, "SPEED"));
+        nodes.put(13, new SkillNode(13, "Propulsão Líquida", "Movimento ultra fluido pelo mapa.", 190, 300, 200, "SPEED"));
+        nodes.put(14, new SkillNode(14, "Dash Tático", "Cooldown do Dash reduzido.", 140, 240, 300, "SPEED"));
+        nodes.put(15, new SkillNode(15, "Reflexos Extremos", "Desvio otimizado contra hordas.", 140, 360, 300, "SPEED"));
 
-        // --- RAMO DIREITO (ECONOMIA / XP E OURO) ---
-        nodes.put(16, new SkillNode(16, "Ganância I", "Mais ouro coletado", 470, 300, 50));
-        nodes.put(17, new SkillNode(17, "Ganância II", "Imã atrai de mais longe", 540, 300, 100));
-        nodes.put(18, new SkillNode(18, "Sabedoria", "Ganho de XP aprimorado", 610, 300, 200));
-        nodes.put(19, new SkillNode(19, "Imã Supremo", "Raio do ímã maximizado", 660, 240, 300));
-        nodes.put(20, new SkillNode(20, "Midas", "Ouro extra por chefe", 660, 360, 300));
+        // --- RAMO DIREITO (ECONOMIA / UTILIDADE) ---
+        nodes.put(16, new SkillNode(16, "Coleta Otimizada", "Aumenta o ganho geral de Ouro.", 470, 300, 50, "UTILITY"));
+        nodes.put(17, new SkillNode(17, "Campo Magnético", "Raio de atração de XP expandido.", 540, 300, 100, "UTILITY"));
+        nodes.put(18, new SkillNode(18, "Sabedoria Arcana", "Ganho de XP aprimorado por orbe.", 610, 300, 200, "UTILITY"));
+        nodes.put(19, new SkillNode(19, "Ímã Quântico", "Atração instantânea de itens distantes.", 660, 240, 300, "UTILITY"));
+        nodes.put(20, new SkillNode(20, "Protocolo Midas", "Ouro extra ao derrotar chefes.", 660, 360, 300, "UTILITY"));
 
-        // --- DIAGONAIS / NÓS EXPANDIDOS (EXTENSÕES) ---
-        nodes.put(21, new SkillNode(21, "Conexão NE-1", "Bônus híbrido ataque/utilidade", 470, 210, 150));
-        nodes.put(22, new SkillNode(22, "Conexão NE-2", "Poder elemental de fogo", 540, 140, 250));
+        // --- NÓS HÍBRIDOS E DIAGONAIS ---
+        nodes.put(21, new SkillNode(21, "Overclock Alpha", "Sintonia híbrida Ataque/Velocidade", 470, 210, 150, "SPECIAL"));
+        nodes.put(22, new SkillNode(22, "Núcleo de Plasma", "Dano concentrado de energia pura", 540, 140, 250, "SPECIAL"));
 
-        nodes.put(23, new SkillNode(23, "Conexão SE-1", "Bônus híbrido defesa/ouro", 470, 390, 150));
-        nodes.put(24, new SkillNode(24, "Conexão SE-2", "Escudo de energia", 540, 460, 250));
+        nodes.put(23, new SkillNode(23, "Blindagem de Liga", "Sintonia híbrida Defesa/Utilidade", 470, 390, 150, "SPECIAL"));
+        nodes.put(24, new SkillNode(24, "Escudo de Íons", "Barreira protetora secundária", 540, 460, 250, "SPECIAL"));
 
-        nodes.put(25, new SkillNode(25, "Conexão NO-1", "Bônus híbrido ataque/velocidade", 330, 210, 150));
-        nodes.put(26, new SkillNode(26, "Conexão NO-2", "Reflexo rápido", 260, 140, 250));
+        nodes.put(25, new SkillNode(25, "Incisão Neural", "Reflexos de combate aprimorados", 330, 210, 150, "SPECIAL"));
+        nodes.put(26, new SkillNode(26, "Cinética Pura", "Velocidade máxima de disparos", 260, 140, 250, "SPECIAL"));
 
-        nodes.put(27, new SkillNode(27, "Conexão SO-1", "Bônus híbrido defesa/velocidade", 330, 390, 150));
-        nodes.put(28, new SkillNode(28, "Conexão SO-2", "Pé leve", 260, 460, 250));
+        nodes.put(27, new SkillNode(27, "Estabilizador", "Equilíbrio de massa e gravidade", 330, 390, 150, "SPECIAL"));
+        nodes.put(28, new SkillNode(28, "Passos Fantasma", "Deslocamento sem atrito", 260, 460, 250, "SPECIAL"));
 
-        nodes.put(29, new SkillNode(29, "Ascensão", "Nó Mestre Final (Super Bônus)", 400, 20, 500));
+        nodes.put(29, new SkillNode(29, "Ascensão Cibernética", "Nó Mestre Definitivo do Sistema", 400, 20, 500, "SPECIAL"));
 
-        // --- DEFININDO AS CONEXÕES (LINHAS DA ÁRVORE) ---
-        // Centro liga com o primeiro de cada direção principal
+        // --- CONEXÕES ---
         connect(0, 1); connect(0, 6); connect(0, 11); connect(0, 16);
-
-        // Ramo Cima
         connect(1, 2); connect(2, 3); connect(3, 4); connect(3, 5); connect(3, 29);
-
-        // Ramo Baixo
         connect(6, 7); connect(7, 8); connect(8, 9); connect(8, 10);
-
-        // Ramo Esquerda
         connect(11, 12); connect(12, 13); connect(13, 14); connect(13, 15);
-
-        // Ramo Direita
         connect(16, 17); connect(17, 18); connect(18, 19); connect(18, 20);
-
-        // Diagonais e Extensões
         connect(1, 21); connect(21, 22); connect(22, 3);
         connect(16, 23); connect(23, 24); connect(24, 8);
         connect(11, 25); connect(25, 26); connect(26, 2);
@@ -122,89 +114,162 @@ public class SphereSkillTree {
     }
 
     public void draw(Graphics g, int gold, int panelWidth, int panelHeight) {
-        // Fundo escuro com leve transparência para a loja
-        g.setColor(new Color(15, 15, 25, 240));
-        g.fillRect(0, 0, panelWidth, panelHeight);
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        g.setColor(Color.YELLOW);
-        g.setFont(new Font("Arial", Font.BOLD, 24));
-        g.drawString("ESFERA DE HABILIDADES (30 NÓS)", 230, 40);
+        // Fundo com gradiente radial/escuro simulando painel sci-fi
+        GradientPaint bgGradient = new GradientPaint(0, 0, new Color(10, 10, 18), panelWidth, panelHeight, new Color(20, 22, 35));
+        g2d.setPaint(bgGradient);
+        g2d.fillRect(0, 0, panelWidth, panelHeight);
 
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.PLAIN, 16));
-        g.drawString("Ouro Disponível: " + gold + " 🪙", 50, 80);
+        // Grade de fundo sutil (estilo radar/terminal)
+        g2d.setColor(new Color(255, 255, 255, 8));
+        for (int x = 0; x < panelWidth; x += 40) g2d.drawLine(x, 0, x, panelHeight);
+        for (int y = 0; y < panelHeight; y += 40) g2d.drawLine(0, y, panelWidth, y);
 
-        // Desenha as linhas de conexão primeiro para ficarem atrás dos círculos
+        // Título estilizado com sombra
+        g2d.setFont(new Font("Arial", Font.BOLD, 22));
+        g2d.setColor(new Color(0, 0, 0, 150));
+        g2d.drawString("MATRIZ DE HABILIDADES CIBERNÉTICAS", 202, 42);
+        g2d.setColor(Color.CYAN);
+        g2d.drawString("MATRIZ DE HABILIDADES CIBERNÉTICAS", 200, 40);
+
+        // Ouro com ícone brilhante
+        g2d.setFont(new Font("Arial", Font.BOLD, 15));
+        g2d.setColor(Color.YELLOW);
+        g2d.drawString("CRÉDITOS: " + gold + " 🪙", 40, 40);
+
+        // Desenhar Conexões
+        Stroke defaultStroke = g2d.getStroke();
         for (SkillNode node : nodes.values()) {
             for (int neighborId : node.connectedTo) {
+                if (node.id > neighborId) continue;
                 SkillNode neighbor = nodes.get(neighborId);
                 if (neighbor != null) {
                     if (node.unlocked && neighbor.unlocked) {
-                        g.setColor(Color.GREEN); // Conexão ativa
+                        g2d.setColor(new Color(0, 230, 120, 200));
+                        g2d.setStroke(new BasicStroke(2.5f));
                     } else {
-                        g.setColor(new Color(60, 60, 80)); // Conexão bloqueada
+                        g2d.setColor(new Color(45, 48, 65, 180));
+                        g2d.setStroke(new BasicStroke(1.5f));
                     }
-                    g.drawLine(node.x, node.y, neighbor.x, neighbor.y);
+                    g2d.drawLine(node.x, node.y, neighbor.x, neighbor.y);
                 }
             }
         }
+        g2d.setStroke(defaultStroke);
 
-        // Desenha os nós (esferas)
+        // Desenhar os Nós (Esferas)
         for (SkillNode node : nodes.values()) {
-            int radius = 16;
+            int radius = 17;
+
             if (node.unlocked) {
-                g.setColor(new Color(0, 200, 100)); // Desbloqueado
+                g2d.setColor(new Color(0, 255, 120, 40));
+                g2d.fillOval(node.x - radius - 6, node.y - radius - 6, (radius + 6) * 2, (radius + 6) * 2);
             } else if (canUnlock(node)) {
-                g.setColor(new Color(200, 180, 0)); // Disponível para comprar
-            } else {
-                g.setColor(new Color(80, 80, 100)); // Bloqueado sem acesso
+                g2d.setColor(new Color(255, 215, 0, 40));
+                g2d.fillOval(node.x - radius - 6, node.y - radius - 6, (radius + 6) * 2, (radius + 6) * 2);
             }
 
-            g.fillOval(node.x - radius, node.y - radius, radius * 2, radius * 2);
+            Color innerColor, outerColor;
+            if (node.unlocked) {
+                innerColor = new Color(120, 255, 180);
+                outerColor = new Color(0, 140, 70);
+            } else if (canUnlock(node)) {
+                innerColor = new Color(255, 240, 100);
+                outerColor = new Color(180, 130, 0);
+            } else {
+                innerColor = new Color(90, 95, 120);
+                outerColor = new Color(40, 42, 55);
+            }
+
+            RadialGradientPaint sphereGradient = new RadialGradientPaint(
+                    node.x - 4, node.y - 4, radius,
+                    new float[]{0.0f, 1.0f},
+                    new Color[]{innerColor, outerColor}
+            );
+            g2d.setPaint(sphereGradient);
+            g2d.fill(new Ellipse2D.Double(node.x - radius, node.y - radius, radius * 2, radius * 2));
 
             if (node == selectedCard) {
-                g.setColor(Color.CYAN); // Selecionado
-                g.drawRect(node.x - radius - 4, node.y - radius - 4, radius * 2 + 8, radius * 2 + 8);
+                g2d.setColor(Color.CYAN);
+                g2d.setStroke(new BasicStroke(2.5f));
+                g2d.drawOval(node.x - radius - 3, node.y - radius - 3, (radius + 3) * 2, (radius + 3) * 2);
+                g2d.setStroke(defaultStroke);
             } else {
-                g.setColor(Color.WHITE);
-                g.drawOval(node.x - radius, node.y - radius, radius * 2, radius * 2);
+                g2d.setColor(new Color(255, 255, 255, 120));
+                g2d.drawOval(node.x - radius, node.y - radius, radius * 2, radius * 2);
             }
 
-            // Número do ID do nó para referência rápida
-            g.setColor(Color.WHITE);
-            g.setFont(new Font("Arial", Font.BOLD, 11));
-            g.drawString(String.valueOf(node.id), node.x - 5, node.y + 4);
+            g2d.setFont(new Font("Arial", Font.BOLD, 10));
+            g2d.setColor(node.unlocked || canUnlock(node) ? Color.BLACK : Color.LIGHT_GRAY);
+            String label = getNodeSymbol(node.type);
+            FontMetrics fm = g2d.getFontMetrics();
+            g2d.drawString(label, node.x - fm.stringWidth(label) / 2, node.y + 4);
         }
 
-        // Painel de Detalhes do Nó Selecionado na parte inferior
+        // Painel de Informações do Nó Selecionado (Inferior)
         if (selectedCard != null) {
-            g.setColor(new Color(30, 30, 45));
-            g.fillRect(150, 430, 500, 75);
-            g.setColor(Color.CYAN);
-            g.drawRect(150, 430, 500, 75);
+            g2d.setColor(new Color(15, 18, 30, 230));
+            g2d.fillRoundRect(120, 410, 560, 105, 12, 12);
+            g2d.setColor(new Color(0, 200, 255, 150));
+            g2d.setStroke(new BasicStroke(1.5f));
+            g2d.drawRoundRect(120, 410, 560, 105, 12, 12);
+            g2d.setStroke(defaultStroke);
 
-            g.setColor(Color.YELLOW);
-            g.setFont(new Font("Arial", Font.BOLD, 14));
-            g.drawString(selectedCard.name + " (Custo: " + selectedCard.cost + " 🪙)", 170, 455);
+            g2d.setFont(new Font("Arial", Font.BOLD, 15));
+            g2d.setColor(Color.YELLOW);
+            g2d.drawString(selectedCard.name, 140, 435);
 
-            g.setColor(Color.WHITE);
-            g.setFont(new Font("Arial", Font.PLAIN, 13));
-            g.drawString(selectedCard.description, 170, 480);
+            g2d.setFont(new Font("Arial", Font.PLAIN, 12));
+            g2d.setColor(Color.WHITE);
+            g2d.drawString("Efeito: " + selectedCard.description, 140, 458);
+
+            if (selectedCard.unlocked) {
+                g2d.setColor(Color.GREEN);
+                g2d.drawString("Status: [ JÁ DESBLOQUEADO ]", 140, 488);
+            } else {
+                g2d.setColor(Color.CYAN);
+                g2d.drawString("Custo de Ativação: " + selectedCard.cost + " Créditos", 140, 488);
+
+                // Desenha o Botão de Comprar Verde
+                g2d.setColor(new Color(0, 160, 80));
+                g2d.fillRoundRect(btnBuy.x, btnBuy.y, btnBuy.width, btnBuy.height, 8, 8);
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(new Font("Arial", Font.BOLD, 13));
+                String buyStr = "COMPRAR";
+                FontMetrics fmBuy = g2d.getFontMetrics();
+                g2d.drawString(buyStr, btnBuy.x + (btnBuy.width - fmBuy.stringWidth(buyStr)) / 2, btnBuy.y + 23);
+            }
         }
 
         // Botão de Fechar Árvore
-        g.setColor(new Color(100, 40, 40));
-        g.fillRect(btnClose.x, btnClose.y, btnClose.width, btnClose.height);
-        g.setColor(Color.RED);
-        g.drawRect(btnClose.x, btnClose.y, btnClose.width, btnClose.height);
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 14));
-        g.drawString("Voltar ao Jogo", btnClose.x + 45, btnClose.y + 25);
+        GradientPaint btnGradient = new GradientPaint(btnClose.x, btnClose.y, new Color(70, 20, 20), btnClose.x, btnClose.y + btnClose.height, new Color(120, 30, 30));
+        g2d.setPaint(btnGradient);
+        g2d.fillRoundRect(btnClose.x, btnClose.y, btnClose.width, btnClose.height, 10, 10);
+        g2d.setColor(new Color(255, 100, 100));
+        g2d.drawRoundRect(btnClose.x, btnClose.y, btnClose.width, btnClose.height, 10, 10);
+
+        g2d.setFont(new Font("Arial", Font.BOLD, 14));
+        g2d.setColor(Color.WHITE);
+        String backText = "Retornar ao Combate";
+        FontMetrics fm = g2d.getFontMetrics();
+        g2d.drawString(backText, btnClose.x + (btnClose.width - fm.stringWidth(backText)) / 2, btnClose.y + 25);
+    }
+
+    private String getNodeSymbol(String type) {
+        switch (type) {
+            case "ATTACK": return "ATK";
+            case "DEFENSE": return "DEF";
+            case "SPEED": return "SPD";
+            case "UTILITY": return "ECO";
+            case "CORE": return "CORE";
+            default: return "MOD";
+        }
     }
 
     private boolean canUnlock(SkillNode node) {
         if (node.unlocked) return false;
-        // Precisa ter pelo menos um vizinho conectado que já esteja desbloqueado
         for (int neighborId : node.connectedTo) {
             if (nodes.get(neighborId).unlocked) {
                 return true;
@@ -213,27 +278,29 @@ public class SphereSkillTree {
         return false;
     }
 
-    // Gerencia o clique. Retorna true se continuar na loja, false se fechou.
     public boolean handleClick(MouseEvent e, GamePainel game) {
         Point p = e.getPoint();
 
-        // Clicou no botão de fechar/voltar
+        // Se clicou no botão de fechar/voltar
         if (btnClose.contains(p)) {
             return false;
         }
 
-        // Verifica clique em algum nó da árvore
+        // Se clicou no botão de COMPRAR (quando há um card selecionado)
+        if (selectedCard != null && !selectedCard.unlocked && btnBuy.contains(p)) {
+            if (canUnlock(selectedCard) && game.gold >= selectedCard.cost) {
+                game.gold -= selectedCard.cost;
+                selectedCard.unlocked = true;
+                applyNodeEffect(selectedCard, game);
+            }
+            return true;
+        }
+
+        // Verifica clique em algum nó da árvore apenas para SELECIONAR
         for (SkillNode node : nodes.values()) {
             double dist = Math.pow(node.x - p.x, 2) + Math.pow(node.y - p.y, 2);
-            if (dist <= 16 * 16) { // Raio de clique da esfera
+            if (dist <= 17 * 17) {
                 selectedCard = node;
-
-                // Se clicou em um nó que pode ser comprado e tem ouro suficiente
-                if (!node.unlocked && canUnlock(node) && game.gold >= node.cost) {
-                    game.gold -= node.cost;
-                    node.unlocked = true;
-                    applyNodeEffect(node, game);
-                }
                 break;
             }
         }
@@ -241,23 +308,18 @@ public class SphereSkillTree {
     }
 
     private void applyNodeEffect(SkillNode node, GamePainel game) {
-        // Aqui você pode adicionar o efeito real de cada ID conforme for criando os bônus com o tempo!
-        switch (node.id) {
-            case 1: case 2: case 3: case 4: case 5:
-                // Exemplo: Melhorias de tiro
+        switch (node.type) {
+            case "ATTACK":
                 game.shootInterval = Math.max(5, game.shootInterval - 3);
                 break;
-            case 6: case 7: case 8:
-                // Exemplo: Melhorias de HP
-                // game.player.maxHp += 10;
-                // game.player.hp = game.player.maxHp;
+            case "SPEED":
+                game.player.speed += 1;
                 break;
-            case 11: case 12: case 13:
-                // Exemplo: Velocidade
-                // game.player.speed += 1;
+            case "DEFENSE":
+                game.player.maxHp += 15;
+                game.player.hp = game.player.maxHp;
                 break;
             default:
-                // Outros nós genéricos por enquanto
                 break;
         }
     }

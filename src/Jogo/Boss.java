@@ -65,6 +65,10 @@ public class Boss {
             corDestaque = new Color(200, 80, 0);
         }
 
+        // Sombra oval profunda nos pés do chefe (maior para proporcional ao tamanho dele)
+        g2d.setColor(new Color(0, 0, 0, 110));
+        g2d.fillOval((int) x + 10, (int) y + height - 12, width - 20, 16);
+
         // Sombra/Aura tóxica
         g2d.setColor(corAura);
         g2d.fillOval((int) x - 10, (int) y - 10, width + 20, height + 20);

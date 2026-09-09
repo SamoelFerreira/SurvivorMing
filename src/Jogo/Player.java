@@ -15,7 +15,7 @@ public class Player {
     // Sistema de XP
     public int level = 1;
     public int currentXp = 0;
-    public int nextLevelXp = 5; // XP necessario para o proximo nivel
+    public int nextLevelXp = 1; // XP necessario para o proximo nivel
 
     public Player(int startX, int startY) {
         this.x = startX;
@@ -58,7 +58,7 @@ public class Player {
         if (currentXp >= nextLevelXp) {
             currentXp -= nextLevelXp; // Desconta o XP do nível atual, mantendo o "resto" para o próximo
             level++;
-            nextLevelXp += 15; // Ou a sua lógica de aumento de XP necessário
+            nextLevelXp += 1; // Ou a sua lógica de aumento de XP necessário
             return true; // Retorna true indicando que subiu de nível
         }
         return false;

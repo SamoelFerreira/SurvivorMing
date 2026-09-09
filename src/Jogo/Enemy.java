@@ -27,6 +27,10 @@ public class Enemy {
     public void draw(Graphics g) {
         Graphics2D g2d = (Graphics2D) g;
 
+        // Sombra oval nos pés do inimigo para profundidade
+        g2d.setColor(new Color(0, 0, 0, 90));
+        g2d.fillOval((int) x + 3, (int) y + height - 6, width - 6, 8);
+
         // Corpo principal do inimigo (estilo monstro/drone blindado)
         g2d.setColor(new Color(80, 30, 100));
         g2d.fillOval((int) x, (int) y, width, height);
