@@ -5,14 +5,14 @@ import java.awt.image.BufferedImage;
 
 public class Player extends Personagem {
     public int x, y;
-    public int width = 48, height = 48;
+    public int width = 96, height = 96;
     public double speed = 5;
     protected final java.util.Random random = new java.util.Random();
 
     // Sistema de XP
     public int level = 1;
     public int currentXp = 0;
-    public int nextLevelXp = 100;
+    public int nextLevelXp = 1;
 
     // Animações e Estados
     private BufferedImage[] idleFrames;
@@ -116,7 +116,7 @@ public class Player extends Personagem {
         if (currentXp >= nextLevelXp) {
             currentXp -= nextLevelXp;
             level++;
-            nextLevelXp += 50;
+            nextLevelXp += 1;
             return true;
         }
         return false;

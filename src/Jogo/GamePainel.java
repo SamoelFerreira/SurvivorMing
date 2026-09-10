@@ -34,6 +34,7 @@ public class GamePainel extends JPanel implements Runnable {
     private SphereSkillTree sphereSkillTree = new SphereSkillTree();
     int gold = 0;
     private int currentStage = 1;
+    private int stageTimer = 0;
 
     private Rectangle btnNextStage = new Rectangle(700, 580, 200, 50);
     private Rectangle btnSkillTree = new Rectangle(700, 510, 200, 50);
@@ -195,18 +196,18 @@ public class GamePainel extends JPanel implements Runnable {
         gameState = GameState.CHARACTER_SELECT;
     }
 
-        private void carregarPreviewsPersonagens() {
+    private void carregarPreviewsPersonagens() {
         characterPreviews[0] = Player.carregarPreview(
-            "/sprites/RazzaBug_Archer", "Archer_Idle.png", 6);
+                "/sprites/RazzaBug_Archer", "Archer_Idle.png", 6);
         characterPreviews[1] = Player.carregarPreview(
-            "/sprites/MaziMage_Lancer", "Lancer_Idle.png", 12);
+                "/sprites/MaziMage_Lancer", "Lancer_Idle.png", 12);
         characterPreviews[2] = Player.carregarPreview(
-            "/sprites/Rafengels_Warrior", "Warrior_Idle.png", 8);
+                "/sprites/Rafengels_Warrior", "Warrior_Idle.png", 8);
         characterPreviews[3] = Player.carregarPreview(
-            "/sprites/PutinhaRica_Monk", "Idle.png", 6);
+                "/sprites/PutinhaRica_Monk", "Idle.png", 6);
         characterPreviews[4] = Player.carregarPreview(
-            "/sprites/TotoLove_Pawn", "Pawn_Idle.png", 8);
-        }
+                "/sprites/TotoLove_Pawn", "Pawn_Idle.png", 8);
+    }
 
     private Player criarPersonagemSelecionado() {
         switch (selectedCharacter) {
@@ -220,6 +221,7 @@ public class GamePainel extends JPanel implements Runnable {
 
     private void restartGame() {
         currentStage = 1;
+        stageTimer = 0;
         gold = 0;
         selectedCharacter = 1;
         initGame();
@@ -348,12 +350,19 @@ public class GamePainel extends JPanel implements Runnable {
                     if (boss.hp <= 0) {
                         player.aoMatarInimigo(true, currentStage * 50);
                         gold += (int) Math.round(currentStage * 50 * (player instanceof PutinhaRica ? 1.3 : 1.0));
-                        enemies.clear();
-                        xpOrbs.clear();
-                        magnets.clear();
-                        bullets.clear();
+
+                        // Agenda a limpeza para fora do loop de colisão ou usa clear com segurança
                         boss = null;
                         gameState = GameState.STAGE_CLEAR;
+
+                        // Garante que a limpeza ocorra sem conflito de iterador
+                        java.awt.EventQueue.invokeLater(() -> {
+                            enemies.clear();
+                            xpOrbs.clear();
+                            magnets.clear();
+                            bullets.clear();
+                        });
+                        break;
                     }
                 }
             }
@@ -407,11 +416,11 @@ public class GamePainel extends JPanel implements Runnable {
             }
         }
 
-        if (boss != null) {
-            Rectangle bossRect = new Rectangle((int) boss.x, (int) boss.y, boss.width, boss.height);
-            if (playerRect.intersects(bossRect)) {
-                player.receberDano(2);
-                if (player.hp <= 0) gameState = GameState.GAME_OVER;
+        if (boss == null) {
+            stageTimer++;
+            if (stageTimer >= 1800 || score >= 50) {
+                boss = new Boss(player.x + 400, player.y - 400, "CHEFE DA FASE " + currentStage, 25 + (currentStage * 15), 0.5 + (currentStage * 0.1), currentStage % 3 == 0 ? 3 : currentStage % 2 == 0 ? 2 : 1);
+                stageTimer = 0;
             }
         }
     }
@@ -419,14 +428,11 @@ public class GamePainel extends JPanel implements Runnable {
     private void shootAtClosestEnemy() {
         EntityTarget closest = null;
         double minDistance = Double.MAX_VALUE;
-
-        // Raio máximo de alcance do tiro (ex: 700 pixels ao redor do player)
         double maxShootRange = 450.0;
 
         for (Enemy enemy : enemies) {
             double distSq = Math.pow(enemy.x - player.x, 2) + Math.pow(enemy.y - player.y, 2);
 
-            // Verifica se é o mais próximo E se está dentro do alcance máximo
             if (distSq < minDistance && distSq <= (maxShootRange * maxShootRange)) {
                 minDistance = distSq;
                 closest = new EntityTarget(enemy.x + (enemy.width / 2.0), enemy.y + (enemy.height / 2.0));
@@ -441,7 +447,6 @@ public class GamePainel extends JPanel implements Runnable {
             }
         }
 
-        // Só dispara se encontrou um alvo válido dentro da distância permitida
         if (closest != null) {
             double startX = player.x + (player.width / 2.0);
             double startY = player.y + (player.height / 2.0);
@@ -466,16 +471,9 @@ public class GamePainel extends JPanel implements Runnable {
         int screenWidth = 1600;
         int screenHeight = 900;
 
-        // --- APLICAR ZOOM DA CÂMERA AQUI ---
-        double zoom = 1.25; // Aumente para aproximar mais (ex: 1.3 ou 1.4) ou diminua (ex: 1.1)
-        g2d.scale(zoom, zoom);
-
-        // Como o zoom redimensiona a tela, recalculamos a largura/altura efetiva para a câmera centralizar certo:
-        int adjustedWidth = (int) (screenWidth / zoom);
-        int adjustedHeight = (int) (screenHeight / zoom);
-
-        int cameraX = player.x - (adjustedWidth / 2) + (player.width / 2);
-        int cameraY = player.y - (adjustedHeight / 2) + (player.height / 2);
+        // Câmera sem zoom global (tamanho real da tela 1600x900)
+        int cameraX = player.x - (screenWidth / 2) + (player.width / 2);
+        int cameraY = player.y - (screenHeight / 2) + (player.height / 2);
 
         // 2. CENÁRIO INFINITO (Grid)
         int tileSize = 64;
