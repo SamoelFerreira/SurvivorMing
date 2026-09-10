@@ -20,7 +20,7 @@ public class ShopMenu {
     }
 
     // Processa os cliques na árvore (retorna false se clicou em retornar ao combate)
-    public boolean handleClick(MouseEvent e, GamePainel game) {
+    public boolean handleClick(MouseEvent e, GamePanel game) {
         return sphereSkillTree.handleClick(e, game);
     }
 
