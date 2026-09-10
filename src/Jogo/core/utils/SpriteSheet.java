@@ -1,4 +1,4 @@
-package Jogo;
+package Jogo.core.utils;
 
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;

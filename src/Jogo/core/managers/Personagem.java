@@ -1,4 +1,6 @@
-package Jogo;
+package Jogo.core.managers;
+
+import Jogo.core.entities.enemies.Enemy;
 
 import java.util.List;
 

@@ -1,4 +1,12 @@
-package Jogo;
+package Jogo.core.ui;
+
+import Jogo.core.entities.*;
+import Jogo.core.entities.enemies.Boss;
+import Jogo.core.entities.enemies.Enemy;
+import Jogo.core.entities.player.*;
+import Jogo.core.managers.EnemyManager;
+import Jogo.core.managers.Magnet;
+import Jogo.core.skilltree.SphereSkillTree;
 
 import javax.swing.*;
 import java.awt.*;
@@ -21,7 +29,7 @@ public class GamePanel extends JPanel implements Runnable {
     private enum GameState {CHARACTER_SELECT, PLAYING, LEVEL_UP, STAGE_CLEAR, SHOP, GAME_OVER}
     private GameState gameState = GameState.PLAYING;
 
-    Player player;
+    public Player player;
     private int pendingLevelUps = 0;
     private List<Enemy> enemies;
     private List<Bullet> bullets;
@@ -32,7 +40,7 @@ public class GamePanel extends JPanel implements Runnable {
     private Random random = new Random();
 
     private SphereSkillTree sphereSkillTree = new SphereSkillTree();
-    int gold = 0;
+    public int gold = 0;
     private int currentStage = 1;
     private int stageTimer = 0;
 

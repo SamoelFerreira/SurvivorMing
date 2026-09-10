@@ -1,4 +1,4 @@
-package Jogo;
+package Jogo.core.entities.enemies;
 
 import java.awt.*;
 

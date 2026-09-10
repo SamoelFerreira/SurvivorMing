@@ -1,4 +1,4 @@
-package Jogo;
+package Jogo.core.entities;
 
 import java.awt.*;
 
