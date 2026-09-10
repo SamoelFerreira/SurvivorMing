@@ -8,6 +8,7 @@ public class Bullet {
     public int width = 10;
     public int height = 10;
     public double speed = 7.0; // Velocidade do tiro
+    public double damage = 15.0;
 
     public Bullet(double startX, double startY, double targetX, double targetY) {
         this.x = startX;
@@ -22,6 +23,11 @@ public class Bullet {
             this.velocityX = (diffX / distance) * speed;
             this.velocityY = (diffY / distance) * speed;
         }
+    }
+
+    public Bullet(double startX, double startY, double targetX, double targetY, double damage) {
+        this(startX, startY, targetX, targetY);
+        this.damage = damage;
     }
 
     public void update() {

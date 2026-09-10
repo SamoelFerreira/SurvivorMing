@@ -3,7 +3,7 @@ package Jogo;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-public class Player {
+public class Player extends Personagem {
     public int x, y;
     public int width = 96, height = 96;
     public int speed = 5;
@@ -13,7 +13,7 @@ public class Player {
     // Sistema de XP
     public int level = 1;
     public int currentXp = 0;
-    public int nextLevelXp = 100;
+    public int nextLevelXp = 1;
 
     // Animações e Estados
     private BufferedImage[] idleFrames;
@@ -31,9 +31,26 @@ public class Player {
     private final int attackDuration = 20; // Quantos frames a animação de tiro dura
 
     public Player(int startX, int startY) {
+        this(startX, startY, "Arqueiro", 100, 15, 5, 1.0);
+    }
+
+    protected Player(int startX, int startY, String nome, int vidaMax, double danoAtaque,
+                     double velocidadeMovimento, double velocidadeAtaque,
+                     String spriteFolder, String idleSprite, int idleFramesCount,
+                     String runSprite, int runFramesCount,
+                     String attackSprite, int attackFramesCount) {
+        super(nome, vidaMax, danoAtaque, velocidadeMovimento, velocidadeAtaque);
         this.x = startX;
         this.y = startY;
-        carregarSprites();
+        this.speed = velocidadeMovimento;
+        carregarSprites(spriteFolder, idleSprite, idleFramesCount, runSprite, runFramesCount,
+                attackSprite, attackFramesCount);
+    }
+
+    private Player(int startX, int startY, String nome, int vidaMax, double danoAtaque,
+                   double velocidadeMovimento, double velocidadeAtaque) {
+        this(startX, startY, nome, vidaMax, danoAtaque, velocidadeMovimento, velocidadeAtaque,
+                "/sprites", "archeridle.png", 6, "archerrun.png", 4, "archershoot.png", 8);
     }
 
     public void faceTarget(double targetX) {
@@ -48,11 +65,15 @@ public class Player {
         SpriteSheet idleLoader = new SpriteSheet("/sprites/archeridle.png");
         idleFrames = idleLoader.cortarFrames(6);
 
-        SpriteSheet runLoader = new SpriteSheet("/sprites/archerrun.png");
-        runFrames = runLoader.cortarFrames(4);
+    private BufferedImage[] carregarFrames(String folder, String fileName, int frameCount) {
+        SpriteSheet loader = new SpriteSheet(folder + "/" + fileName);
+        return loader.cortarFrames(frameCount);
+    }
 
-        SpriteSheet shootLoader = new SpriteSheet("/sprites/archershoot.png");
-        shootFrames = shootLoader.cortarFrames(8);
+    public static BufferedImage carregarPreview(String folder, String fileName, int frameCount) {
+        SpriteSheet loader = new SpriteSheet(folder + "/" + fileName);
+        BufferedImage[] frames = loader.cortarFrames(frameCount);
+        return frames.length == 0 ? null : frames[0];
     }
 
     public void triggerAttack() {
@@ -109,10 +130,15 @@ public class Player {
         if (currentXp >= nextLevelXp) {
             currentXp -= nextLevelXp;
             level++;
-            nextLevelXp += 50;
+            nextLevelXp += 1;
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void atualizarPassiva(java.util.List<Enemy> inimigos) {
+        // O personagem base nao possui passiva adicional.
     }
 
     public void draw(Graphics g, int cameraX, int cameraY) {
