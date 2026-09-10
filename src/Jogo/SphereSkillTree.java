@@ -365,7 +365,7 @@ public class SphereSkillTree {
         return false;
     }
 
-    public boolean handleClick(MouseEvent e, GamePainel game) {
+    public boolean handleClick(MouseEvent e, GamePanel game) {
         Point p = e.getPoint();
 
         // Se clicou no botão de fechar/voltar
@@ -404,7 +404,7 @@ public class SphereSkillTree {
         return true;
     }
 
-    private void applyNodeEffect(SkillNode node, GamePainel game) {
+    private void applyNodeEffect(SkillNode node, GamePanel game) {
         switch (node.type) {
             case "ATTACK":
                 game.shootInterval = Math.max(5, game.shootInterval - 3);

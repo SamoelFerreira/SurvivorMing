@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Random;
 import java.awt.image.BufferedImage;
 
-public class GamePainel extends JPanel implements Runnable {
+public class GamePanel extends JPanel implements Runnable {
     private Thread gameThread;
     private boolean running = true;
 
@@ -71,13 +71,18 @@ public class GamePainel extends JPanel implements Runnable {
     private Rectangle[] upgradeRects = new Rectangle[3];
     private int hoveredUpgradeIndex = -1;
 
-    public GamePainel() {
+    private GameWindow window; // Guardar a referência da janela se precisar voltar pro menu
+
+    public GamePanel(GameWindow window) {
+        this.window = window;
         setPreferredSize(new Dimension(1600, 900));
         setBackground(Color.DARK_GRAY);
         setFocusable(true);
 
-        carregarPreviewsPersonagens();
+        carregarPreviewsPersonagens(); // Carrega os sprites dos bonecos
         initGame();
+
+        // ... (o restante dos seus addKeyListener e addMouseListener continuam aqui)
 
         addKeyListener(new KeyAdapter() {
             @Override
@@ -154,7 +159,7 @@ public class GamePainel extends JPanel implements Runnable {
                         gameState = GameState.PLAYING;
                     }
                 } else if (gameState == GameState.SHOP) {
-                    boolean keepInShop = sphereSkillTree.handleClick(e, GamePainel.this);
+                    boolean keepInShop = sphereSkillTree.handleClick(e, GamePanel.this);
                     if (!keepInShop) {
                         gameState = GameState.STAGE_CLEAR;
                     }
@@ -693,14 +698,14 @@ public class GamePainel extends JPanel implements Runnable {
         }
     }
 
-    public static void main(String[] args) {
-        JFrame frame = new JFrame("Jogo de Horda - Vampire Style");
-        GamePainel game = new GamePainel();
-        frame.add(game);
-        frame.pack();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-        game.startGame();
+    public void stop() {
+        running = false;
+        try {
+            if (gameThread != null) {
+                gameThread.join();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
