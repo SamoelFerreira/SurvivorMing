@@ -6,8 +6,9 @@ import java.awt.image.BufferedImage;
 public class Player extends Personagem {
     public int x, y;
     public int width = 96, height = 96;
-    public double speed = 5;
-    protected final java.util.Random random = new java.util.Random();
+    public int speed = 5;
+    public int maxHp = 100;
+    public int hp = 100;
 
     // Sistema de XP
     public int level = 1;
@@ -18,6 +19,7 @@ public class Player extends Personagem {
     private BufferedImage[] idleFrames;
     private BufferedImage[] runFrames;
     private BufferedImage[] shootFrames;
+    private boolean facingLeft = false;
 
     private int animFrame = 0;
     private int animTimer = 0;
@@ -51,13 +53,17 @@ public class Player extends Personagem {
                 "/sprites", "archeridle.png", 6, "archerrun.png", 4, "archershoot.png", 8);
     }
 
-    private void carregarSprites(String spriteFolder, String idleSprite, int idleFramesCount,
-                                 String runSprite, int runFramesCount,
-                                 String attackSprite, int attackFramesCount) {
-        idleFrames = carregarFrames(spriteFolder, idleSprite, idleFramesCount);
-        runFrames = carregarFrames(spriteFolder, runSprite, runFramesCount);
-        shootFrames = carregarFrames(spriteFolder, attackSprite, attackFramesCount);
+    public void faceTarget(double targetX) {
+        if (targetX < this.x) {
+            facingLeft = true;
+        } else {
+            facingLeft = false;
+        }
     }
+
+    private void carregarSprites() {
+        SpriteSheet idleLoader = new SpriteSheet("/sprites/archeridle.png");
+        idleFrames = idleLoader.cortarFrames(6);
 
     private BufferedImage[] carregarFrames(String folder, String fileName, int frameCount) {
         SpriteSheet loader = new SpriteSheet(folder + "/" + fileName);
@@ -78,10 +84,18 @@ public class Player extends Personagem {
     public void update(boolean up, boolean down, boolean left, boolean right) {
         isMoving = false;
 
-        if (up) { y -= (int) speed; isMoving = true; }
-        if (down) { y += (int) speed; isMoving = true; }
-        if (left) { x -= (int) speed; isMoving = true; }
-        if (right) { x += (int) speed; isMoving = true; }
+        if (up) { y -= speed; isMoving = true; }
+        if (down) { y += speed; isMoving = true; }
+        if (left) {
+            x -= speed;
+            isMoving = true;
+            facingLeft = true;  // Adiciona isso aqui
+        }
+        if (right) {
+            x += speed;
+            isMoving = true;
+            facingLeft = false; // Adiciona isso aqui
+        }
 
         // Controla o tempo da animação de tiro
         if (isAttacking) {
@@ -151,9 +165,17 @@ public class Player extends Personagem {
 
         int frameIndex = animFrame % currentFrames.length;
 
-        // Desenha o frame atual na tela
+        // Desenha o frame atual na tela com suporte a espelhamento horizontal
         if (currentFrames != null && currentFrames[frameIndex] != null) {
-            g.drawImage(currentFrames[frameIndex], screenX, screenY, width, height, null);
+            BufferedImage frameToDraw = currentFrames[frameIndex];
+
+            if (facingLeft) {
+                // Inverte horizontalmente (-width e screenX + width)
+                g.drawImage(frameToDraw, screenX + width, screenY, -width, height, null);
+            } else {
+                // Desenha normalmente
+                g.drawImage(frameToDraw, screenX, screenY, width, height, null);
+            }
         } else {
             g.setColor(Color.BLUE);
             g.fillRect(screenX, screenY, width, height);

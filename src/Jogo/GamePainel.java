@@ -30,27 +30,17 @@ public class GamePainel extends JPanel implements Runnable {
     private EnemyManager enemyManager;
     private Boss boss = null;
     private Random random = new Random();
-
     private SphereSkillTree sphereSkillTree = new SphereSkillTree();
     int gold = 0;
     private int currentStage = 1;
-    private int stageTimer = 0;
-
     private Rectangle btnNextStage = new Rectangle(700, 580, 200, 50);
     private Rectangle btnSkillTree = new Rectangle(700, 510, 200, 50);
-
     private int score = 0;
     private int shootTimer = 0;
     public int shootInterval = 1;
-
     private boolean up, down, left, right;
-    private int selectedCharacter = 1;
-    private final BufferedImage[] characterPreviews = new BufferedImage[5];
-    private final Rectangle[] characterCards = new Rectangle[5];
-
     private int magnetSpawnTimer = 0;
     private int magnetSpawnInterval = 900;
-
     private int dashCooldownTimer = 0;
     private final int dashCooldownMax = 1800;
     private boolean canDash = true;
@@ -428,6 +418,8 @@ public class GamePainel extends JPanel implements Runnable {
     private void shootAtClosestEnemy() {
         EntityTarget closest = null;
         double minDistance = Double.MAX_VALUE;
+
+        // Raio máximo de alcance do tiro (ex: 450 pixels ao redor do player)
         double maxShootRange = 450.0;
 
         for (Enemy enemy : enemies) {
@@ -450,8 +442,10 @@ public class GamePainel extends JPanel implements Runnable {
         if (closest != null) {
             double startX = player.x + (player.width / 2.0);
             double startY = player.y + (player.height / 2.0);
+            bullets.add(new Bullet(startX, startY, closest.x, closest.y));
+
+            player.faceTarget(closest.x); // <--- Garanta que esta linha está aqui
             player.triggerAttack();
-            bullets.add(new Bullet(startX, startY, closest.x, closest.y, player.getDanoAtaque()));
         }
     }
 
@@ -471,9 +465,16 @@ public class GamePainel extends JPanel implements Runnable {
         int screenWidth = 1600;
         int screenHeight = 900;
 
-        // Câmera sem zoom global (tamanho real da tela 1600x900)
-        int cameraX = player.x - (screenWidth / 2) + (player.width / 2);
-        int cameraY = player.y - (screenHeight / 2) + (player.height / 2);
+        // --- APLICAR ZOOM DA CÂMERA AQUI ---
+        double zoom = 1.00; // Aumente para aproximar mais (ex: 1.3 ou 1.4) ou diminua (ex: 1.1)
+        g2d.scale(zoom, zoom);
+
+        // Como o zoom redimensiona a tela, recalculamos a largura/altura efetiva para a câmera centralizar certo:
+        int adjustedWidth = (int) (screenWidth / zoom);
+        int adjustedHeight = (int) (screenHeight / zoom);
+
+        int cameraX = player.x - (adjustedWidth / 2) + (player.width / 2);
+        int cameraY = player.y - (adjustedHeight / 2) + (player.height / 2);
 
         // 2. CENÁRIO INFINITO (Grid)
         int tileSize = 64;
