@@ -1,4 +1,6 @@
-package Jogo;
+package Jogo.core.skilltree;
+
+import Jogo.core.ui.GamePanel;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;

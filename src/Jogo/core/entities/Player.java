@@ -1,4 +1,8 @@
-package Jogo;
+package Jogo.core.entities;
+
+import Jogo.core.entities.enemies.Enemy;
+import Jogo.core.managers.Personagem;
+import Jogo.core.utils.SpriteSheet;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;

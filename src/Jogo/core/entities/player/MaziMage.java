@@ -1,4 +1,7 @@
-package Jogo;
+package Jogo.core.entities.player;
+
+import Jogo.core.entities.enemies.Enemy;
+import Jogo.core.entities.Player;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package Jogo;
+package Jogo.core.managers;
 
 import java.awt.*;
 

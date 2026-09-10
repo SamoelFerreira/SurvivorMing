@@ -1,4 +1,4 @@
-package Jogo;
+package Jogo.core.ui;
 
 import javax.swing.*;
 import java.awt.*;
