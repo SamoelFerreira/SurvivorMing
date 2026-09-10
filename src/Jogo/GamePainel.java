@@ -197,18 +197,16 @@ public class GamePainel extends JPanel implements Runnable {
     }
 
     private void carregarPreviewsPersonagens() {
-        characterPreviews[0] = Player.carregarPreview("/sprites/RazzaBug_Archer", "Archer_Idle.png", 6);
-        characterPreviews[1] = Player.carregarPreview("/sprites/MaziMage_Lancer", "Lancer_Idle.png", 12);
-        characterPreviews[2] = Player.carregarPreview("/sprites/Rafengels_Warrior", "Warrior_Idle.png", 8);
-        characterPreviews[3] = Player.carregarPreview("/sprites/PutinhaRica_Monk", "Idle.png", 6);
-        characterPreviews[4] = Player.carregarPreview("/sprites/TotoLove_Pawn", "Pawn_Idle.png", 8);
-    }
-
-    private BufferedImage getCharacterSprite(int index) {
-        if (index >= 0 && index < characterPreviews.length) {
-            return characterPreviews[index];
-        }
-        return null;
+        characterPreviews[0] = Player.carregarPreview(
+                "/sprites/RazzaBug_Archer", "Archer_Idle.png", 6);
+        characterPreviews[1] = Player.carregarPreview(
+                "/sprites/MaziMage_Lancer", "Lancer_Idle.png", 12);
+        characterPreviews[2] = Player.carregarPreview(
+                "/sprites/Rafengels_Warrior", "Warrior_Idle.png", 8);
+        characterPreviews[3] = Player.carregarPreview(
+                "/sprites/PutinhaRica_Monk", "Idle.png", 6);
+        characterPreviews[4] = Player.carregarPreview(
+                "/sprites/TotoLove_Pawn", "Pawn_Idle.png", 8);
     }
 
     private Player criarPersonagemSelecionado() {
@@ -315,6 +313,7 @@ public class GamePainel extends JPanel implements Runnable {
         for (Enemy enemy : enemies) enemy.update(player.x, player.y);
         if (boss != null) boss.update(player.x, player.y);
 
+        // Colisões de Tiros
         Iterator<Bullet> bIter = bullets.iterator();
         while (bIter.hasNext()) {
             Bullet bullet = bIter.next();
@@ -352,10 +351,12 @@ public class GamePainel extends JPanel implements Runnable {
                         player.aoMatarInimigo(true, currentStage * 50);
                         gold += (int) Math.round(currentStage * 50 * (player instanceof PutinhaRica ? 1.3 : 1.0));
 
+                        // Agenda a limpeza para fora do loop de colisão ou usa clear com segurança
                         boss = null;
                         gameState = GameState.STAGE_CLEAR;
 
-                        SwingUtilities.invokeLater(() -> {
+                        // Garante que a limpeza ocorra sem conflito de iterador
+                        java.awt.EventQueue.invokeLater(() -> {
                             enemies.clear();
                             xpOrbs.clear();
                             magnets.clear();
@@ -369,6 +370,7 @@ public class GamePainel extends JPanel implements Runnable {
 
         Rectangle playerRect = new Rectangle(player.x, player.y, player.width, player.height);
 
+        // Coleta de XP
         Iterator<XpOrb> xpIter = xpOrbs.iterator();
         while (xpIter.hasNext()) {
             XpOrb orb = xpIter.next();
@@ -386,6 +388,7 @@ public class GamePainel extends JPanel implements Runnable {
             }
         }
 
+        // Coleta de Ímã
         Iterator<Magnet> magnetIter = magnets.iterator();
         while (magnetIter.hasNext()) {
             Magnet magnet = magnetIter.next();
@@ -404,6 +407,7 @@ public class GamePainel extends JPanel implements Runnable {
             }
         }
 
+        // Dano no Player
         for (Enemy enemy : enemies) {
             Rectangle enemyRect = new Rectangle((int) enemy.x, (int) enemy.y, enemy.width, enemy.height);
             if (playerRect.intersects(enemyRect) && !enemy.isAliado()) {
@@ -459,25 +463,6 @@ public class GamePainel extends JPanel implements Runnable {
         }
     }
 
-    private void drawMultilineText(Graphics2D g2d, String text, int x, int y, int maxWidth) {
-        FontMetrics fm = g2d.getFontMetrics();
-        String[] words = text.split(" ");
-        StringBuilder currentLine = new StringBuilder();
-        int lineHeight = fm.getHeight();
-
-        for (String word : words) {
-            String testLine = currentLine + (currentLine.length() > 0 ? " " : "") + word;
-            if (fm.stringWidth(testLine) > maxWidth) {
-                g2d.drawString(currentLine.toString(), x, y);
-                currentLine = new StringBuilder(word);
-                y += lineHeight;
-            } else {
-                currentLine.append((currentLine.length() > 0 ? " " : "")).append(word);
-            }
-        }
-        g2d.drawString(currentLine.toString(), x, y);
-    }
-
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -486,9 +471,11 @@ public class GamePainel extends JPanel implements Runnable {
         int screenWidth = 1600;
         int screenHeight = 900;
 
+        // Câmera sem zoom global (tamanho real da tela 1600x900)
         int cameraX = player.x - (screenWidth / 2) + (player.width / 2);
         int cameraY = player.y - (screenHeight / 2) + (player.height / 2);
 
+        // 2. CENÁRIO INFINITO (Grid)
         int tileSize = 64;
         int startX = cameraX / tileSize - 1;
         int endX = startX + (screenWidth / tileSize) + 3;
@@ -509,6 +496,7 @@ public class GamePainel extends JPanel implements Runnable {
             }
         }
 
+        // 3. DESENHO DAS ENTIDADES COM A CÂMERA APLICADA
         for (XpOrb orb : xpOrbs) orb.draw(g2d, cameraX, cameraY);
         for (Magnet magnet : magnets) magnet.draw(g2d, cameraX, cameraY);
         for (Enemy enemy : enemies) enemy.draw(g2d, cameraX, cameraY);
@@ -517,6 +505,7 @@ public class GamePainel extends JPanel implements Runnable {
 
         player.draw(g2d, cameraX, cameraY);
 
+        // --- HUD PRINCIPAL (Fixo na Tela) ---
         g2d.setColor(Color.WHITE);
         g2d.setFont(new Font("Arial", Font.BOLD, 16));
         g2d.drawString("Fase: " + currentStage, 20, 30);
@@ -549,49 +538,36 @@ public class GamePainel extends JPanel implements Runnable {
                     "Ganha mais ouro e dano conforme enriquece",
                     "Pode converter ate 5 inimigos em aliados"
             };
-
-            int cardWidth = 210;
-            int cardHeight = 260;
-            int totalCardsWidth = (cardWidth * 5) + (40 * 4);
-            int cardStartX = (screenWidth - totalCardsWidth) / 2;
-            int cardY = 220;
-
-            for (int i = 0; i < 5; i++) {
-                int x = cardStartX + i * (cardWidth + 40);
-                characterCards[i] = new Rectangle(x, cardY, cardWidth, cardHeight);
-
-                g2d.setColor(new Color(25, 30, 45, 200));
-                g2d.fillRect(x, cardY, cardWidth, cardHeight);
-
-                if (selectedCharacter == (i + 1)) {
-                    g2d.setColor(Color.CYAN);
-                    g2d.setStroke(new BasicStroke(3));
-                } else {
-                    g2d.setColor(new Color(100, 110, 130));
-                    g2d.setStroke(new BasicStroke(1));
-                }
-                g2d.drawRect(x, cardY, cardWidth, cardHeight);
-
-                g2d.setFont(new Font("Arial", Font.BOLD, 18));
+            for (int i = 0; i < nomes.length; i++) {
+                int cardX = 180 + i * 250;
+                int cardY = 260;
+                characterCards[i] = new Rectangle(cardX, cardY, 220, 220);
+                g2d.setColor(i + 1 == selectedCharacter ? new Color(20, 100, 120) : new Color(35, 35, 45));
+                g2d.fillRect(cardX, cardY, 220, 220);
+                g2d.setColor(i + 1 == selectedCharacter ? Color.YELLOW : Color.GRAY);
+                g2d.drawRect(cardX, cardY, 220, 220);
                 g2d.setColor(Color.WHITE);
-                g2d.drawString((i + 1) + ". " + nomes[i], x + 15, cardY + 35);
+                g2d.setFont(new Font("Arial", Font.BOLD, 18));
+                g2d.drawString((i + 1) + ". " + nomes[i], cardX + 15, cardY + 40);
 
-                BufferedImage charSprite = getCharacterSprite(i);
-                if (charSprite != null) {
-                    g2d.drawImage(charSprite, x + (cardWidth - 64) / 2, cardY + 55, 64, 64, null);
+                if (characterPreviews[i] != null) {
+                    g2d.drawImage(characterPreviews[i], cardX + 65, cardY + 52, 90, 90, null);
+                } else {
+                    g2d.setColor(Color.RED);
+                    g2d.setFont(new Font("Arial", Font.PLAIN, 12));
+                    g2d.drawString("Sprite indisponível", cardX + 48, cardY + 100);
                 }
 
-                g2d.setFont(new Font("Arial", Font.PLAIN, 11));
-                g2d.setColor(new Color(210, 210, 210));
-                drawMultilineText(g2d, descricoes[i], x + 15, cardY + 145, cardWidth - 30);
+                g2d.setFont(new Font("Arial", Font.PLAIN, 14));
+                g2d.setColor(Color.WHITE);
+                g2d.drawString(descricoes[i], cardX + 15, cardY + 85);
             }
-
-            g2d.setFont(new Font("Arial", Font.BOLD, 16));
             g2d.setColor(Color.GREEN);
-            String instrucao = "Pressione 1-5 para selecionar e ENTER para iniciar";
-            g2d.drawString(instrucao, (screenWidth - g2d.getFontMetrics().stringWidth(instrucao)) / 2, cardY + cardHeight + 60);
+            g2d.setFont(new Font("Arial", Font.BOLD, 18));
+            g2d.drawString("Pressione 1-5 para selecionar e ENTER para iniciar", screenWidth / 2 - 260, 600);
         }
 
+        // --- MENU LEVEL UP ---
         if (gameState == GameState.LEVEL_UP) {
             g2d.setColor(new Color(0, 0, 0, 220));
             g2d.fillRect(0, 0, getWidth(), getHeight());
@@ -642,6 +618,7 @@ public class GamePainel extends JPanel implements Runnable {
             }
         }
 
+        // --- TELA DE TRANSIÇÃO DE FASE (STAGE_CLEAR) ---
         if (gameState == GameState.STAGE_CLEAR) {
             g2d.setColor(new Color(0, 0, 0, 230));
             g2d.fillRect(0, 0, getWidth(), getHeight());
@@ -655,6 +632,7 @@ public class GamePainel extends JPanel implements Runnable {
             g2d.drawString("Ouro Coletado: " + gold + " 🪙", screenWidth / 2 - 90, 320);
             g2d.drawString("Escolha sua próxima ação:", screenWidth / 2 - 110, 420);
 
+            // Botão Esfera de Skills
             g2d.setColor(new Color(50, 50, 100));
             g2d.fillRect(btnSkillTree.x, btnSkillTree.y, btnSkillTree.width, btnSkillTree.height);
             g2d.setColor(Color.CYAN);
@@ -662,6 +640,7 @@ public class GamePainel extends JPanel implements Runnable {
             g2d.setFont(new Font("Arial", Font.BOLD, 16));
             g2d.drawString("Esfera de Skills", btnSkillTree.x + 35, btnSkillTree.y + 30);
 
+            // Botão Próxima Fase
             g2d.setColor(new Color(0, 100, 0));
             g2d.fillRect(btnNextStage.x, btnNextStage.y, btnNextStage.width, btnNextStage.height);
             g2d.setColor(Color.GREEN);
@@ -669,10 +648,12 @@ public class GamePainel extends JPanel implements Runnable {
             g2d.drawString("Próxima Fase ➡️", btnNextStage.x + 35, btnNextStage.y + 30);
         }
 
+        // --- TELA DA LOJA / ESFERA ---
         if (gameState == GameState.SHOP) {
             sphereSkillTree.draw(g2d, gold, getWidth(), getHeight());
         }
 
+        // --- TELA DE GAME OVER ---
         if (gameState == GameState.GAME_OVER) {
             g2d.setColor(new Color(0, 0, 0, 220));
             g2d.fillRect(screenWidth / 2 - 200, screenHeight / 2 - 150, 400, 300);
